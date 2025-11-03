@@ -207,7 +207,7 @@
     </div>
 
     <div class="provider-config__section">
-        <div >
+        <div>
             <div class="b3-label__text">API Key</div>
             <input
                 class="b3-text-field fn__flex-1"
@@ -218,7 +218,7 @@
             />
         </div>
 
-        <div >
+        <div>
             <div class="b3-label__text">
                 {t('platform.apiUrl')}
                 {#if defaultApiUrl}
