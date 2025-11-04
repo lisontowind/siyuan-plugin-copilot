@@ -522,28 +522,35 @@
     .config__tab-wrap {
         flex: 1;
         height: 100%;
-        overflow: auto;
+        overflow: hidden;
         padding: 2px;
+        display: flex;
+        flex-direction: column;
     }
 
     /* 平台管理：侧边栏布局 */
     .platform-management-layout {
         display: flex;
         gap: 16px;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         align-items: stretch;
     }
 
     .platform-sidebar {
         width: 260px;
         flex-shrink: 0;
-        padding: 16px 8px 16px 0;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
     }
 
     .platform-main {
         flex: 1;
-        padding: 16px;
         min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
     }
 
     .no-selection {
@@ -558,7 +565,10 @@
         background: var(--b3-theme-surface);
         border-radius: 6px;
         padding: 16px;
-        height: 600px;
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        min-height: 0;
     }
 
     .manager-header {
@@ -589,8 +599,9 @@
         display: flex;
         flex-direction: column;
         gap: 8px;
-        max-height: 550px;
+        flex: 1;
         overflow-y: auto;
+        min-height: 0;
     }
 
     .platform-item {

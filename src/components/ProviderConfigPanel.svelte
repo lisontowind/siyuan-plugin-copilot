@@ -481,7 +481,8 @@
         padding: 16px;
         background: var(--b3-theme-surface);
         border-radius: 6px;
-        margin-bottom: 16px;
+        height: 100%;
+        overflow-y: auto;
     }
 
     .provider-config__header {
