@@ -1677,18 +1677,32 @@
             const nodeId = info[2];
             await addItemByBlockId(nodeId, false);
         } else if (type.startsWith(Constants.SIYUAN_DROP_FILE)) {
+            // 支持单选和多选拖放
             const ele: HTMLElement = (window as any).siyuan?.dragElement;
             if (ele && ele.innerText) {
-                const blockid = ele.innerText;
-                if (blockid && blockid !== '/') {
-                    await addItemByBlockId(blockid, false);
+                // 获取块ID字符串，可能是单个ID或逗号分隔的多个ID
+                const blockIdStr = ele.innerText;
+                
+                // 分割成多个块ID（多选时用逗号分隔）
+                const blockIds = blockIdStr
+                    .split(',')
+                    .map(id => id.trim())
+                    .filter(id => id && id !== '/');
+
+                // 批量添加到上下文
+                if (blockIds.length > 0) {
+                    for (const blockid of blockIds) {
+                        await addItemByBlockId(blockid, false);
+                        // 恢复文档树节点的透明度
+                        const item: HTMLElement = document.querySelector(
+                            `.file-tree.sy__tree li[data-node-id="${blockid}"]`
+                        );
+                        if (item) {
+                            item.style.opacity = '1';
+                        }
+                    }
                 }
-                const item: HTMLElement = document.querySelector(
-                    `.file-tree.sy__tree li[data-node-id="${blockid}"]`
-                );
-                if (item) {
-                    item.style.opacity = '1';
-                }
+                
                 (window as any).siyuan.dragElement = undefined;
             }
         } else if (event.dataTransfer.types.includes(Constants.SIYUAN_DROP_TAB)) {
