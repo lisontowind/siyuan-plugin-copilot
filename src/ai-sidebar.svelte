@@ -16,6 +16,7 @@
         id: string;
         title: string;
         messages: Message[];
+        contextDocuments?: ContextDocument[];
         createdAt: number;
         updatedAt: number;
     }
@@ -772,6 +773,7 @@
         messages = settings.aiSystemPrompt
             ? [{ role: 'system', content: settings.aiSystemPrompt }]
             : [];
+        contextDocuments = [];
         streamingMessage = '';
         streamingThinking = '';
         isThinkingPhase = false;
@@ -1456,6 +1458,7 @@
             const session = sessions.find(s => s.id === currentSessionId);
             if (session) {
                 session.messages = [...messages];
+                session.contextDocuments = contextDocuments.length > 0 ? [...contextDocuments] : undefined;
                 session.title = generateSessionTitle();
                 session.updatedAt = now;
             }
@@ -1465,6 +1468,7 @@
                 id: `session_${now}`,
                 title: generateSessionTitle(),
                 messages: [...messages],
+                contextDocuments: contextDocuments.length > 0 ? [...contextDocuments] : undefined,
                 createdAt: now,
                 updatedAt: now,
             };
@@ -1503,6 +1507,8 @@
         const session = sessions.find(s => s.id === sessionId);
         if (session) {
             messages = [...session.messages];
+            // 恢复上下文文档
+            contextDocuments = session.contextDocuments ? [...session.contextDocuments] : [];
             // 确保系统提示词存在且是最新的
             if (settings.aiSystemPrompt) {
                 const systemMsgIndex = messages.findIndex(m => m.role === 'system');
@@ -1535,6 +1541,7 @@
         messages = settings.aiSystemPrompt
             ? [{ role: 'system', content: settings.aiSystemPrompt }]
             : [];
+        contextDocuments = [];
         currentSessionId = '';
         hasUnsavedChanges = false;
     }
