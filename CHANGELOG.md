@@ -3,12 +3,12 @@
 
 - 以/结尾忽略v1版本，以# 强制使用输入地址实现逻辑优化
 
-  - 输入https/
-      text.pollinations.ai/openai/，应该用https://text.pollinations.ai/openai/models进
-      型搜索，以及https://text.pollinations.ai/openai/chat/completions进行聊天
-  - 输入https/
-      text.pollinations.ai/openai#，应该用https://text.pollinations.ai/openai进
-      型搜索，以及https://text.pollinations.ai/openai进行聊天
+  - 输入[https/
+      text.pollinations.ai/openai/]，应该用[https://text.pollinations.ai/openai/models]进
+      型搜索，以及[https://text.pollinations.ai/openai/chat/completions]进行聊天
+  - 输入[https/
+      text.pollinations.ai/openai#]，应该用[https://text.pollinations.ai/openai]进行
+      型搜索，以及[https://text.pollinations.ai/openai]进行聊天
 
 
 ## v0.1.1 / 20251106
