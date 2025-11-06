@@ -188,7 +188,7 @@
                     messages[0].content = settings.aiSystemPrompt;
                 }
 
-                console.debug('AI Sidebar: ' + t('common.configComplete'));
+                // console.debug('AI Sidebar: ' + t('common.configComplete'));
             }
         });
 
