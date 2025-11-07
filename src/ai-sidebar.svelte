@@ -631,14 +631,18 @@
                 // 只处理历史用户消息的上下文（不是最后一条消息）
                 // 最后一条消息将在后面用最新内容处理
                 const isLastMessage = index === array.length - 1;
-                if (!isLastMessage && msg.role === 'user' && msg.contextDocuments && msg.contextDocuments.length > 0) {
+                if (
+                    !isLastMessage &&
+                    msg.role === 'user' &&
+                    msg.contextDocuments &&
+                    msg.contextDocuments.length > 0
+                ) {
                     const hasImages = msg.attachments?.some(att => att.type === 'image');
-                    
+
                     // 获取原始消息内容
-                    const originalContent = typeof msg.content === 'string' 
-                        ? msg.content 
-                        : getMessageText(msg.content);
-                    
+                    const originalContent =
+                        typeof msg.content === 'string' ? msg.content : getMessageText(msg.content);
+
                     // 构建上下文文本
                     const contextText = msg.contextDocuments
                         .map(doc => {
@@ -646,16 +650,16 @@
                             return `## ${label}: ${doc.title}\n\n**BlockID**: \`${doc.id}\`\n\n\`\`\`markdown\n${doc.content}\n\`\`\``;
                         })
                         .join('\n\n---\n\n');
-                    
+
                     // 如果有图片附件，使用多模态格式
                     if (hasImages) {
                         const contentParts: any[] = [];
-                        
+
                         // 添加文本内容和上下文
                         let textContent = originalContent;
                         textContent += `\n\n---\n\n以下是相关内容作为上下文：\n\n${contextText}`;
                         contentParts.push({ type: 'text', text: textContent });
-                        
+
                         // 添加图片
                         msg.attachments?.forEach(att => {
                             if (att.type === 'image') {
@@ -665,25 +669,25 @@
                                 });
                             }
                         });
-                        
+
                         // 添加文本文件内容
                         const fileTexts = msg.attachments
                             ?.filter(att => att.type === 'file')
                             .map(att => `## 文件: ${att.name}\n\n\`\`\`\n${att.data}\n\`\`\`\n`)
                             .join('\n\n---\n\n');
-                        
+
                         if (fileTexts) {
                             contentParts.push({
                                 type: 'text',
                                 text: `\n\n以下是附件文件内容：\n\n${fileTexts}`,
                             });
                         }
-                        
+
                         baseMsg.content = contentParts;
                     } else {
                         // 纯文本格式
                         let enhancedContent = originalContent;
-                        
+
                         // 添加文本文件附件
                         if (msg.attachments && msg.attachments.length > 0) {
                             const attachmentTexts = msg.attachments
@@ -695,15 +699,15 @@
                                 })
                                 .filter(Boolean)
                                 .join('\n\n---\n\n');
-                            
+
                             if (attachmentTexts) {
                                 enhancedContent += `\n\n---\n\n以下是附件内容：\n\n${attachmentTexts}`;
                             }
                         }
-                        
+
                         // 添加上下文文档
                         enhancedContent += `\n\n---\n\n以下是相关内容作为上下文：\n\n${contextText}`;
-                        
+
                         baseMsg.content = enhancedContent;
                     }
                 }
@@ -2943,14 +2947,18 @@
                 // 只处理历史用户消息的上下文（不是最后一条消息）
                 // 最后一条消息将在后面用最新内容处理
                 const isLastMessage = index === array.length - 1;
-                if (!isLastMessage && msg.role === 'user' && msg.contextDocuments && msg.contextDocuments.length > 0) {
+                if (
+                    !isLastMessage &&
+                    msg.role === 'user' &&
+                    msg.contextDocuments &&
+                    msg.contextDocuments.length > 0
+                ) {
                     const hasImages = msg.attachments?.some(att => att.type === 'image');
-                    
+
                     // 获取原始消息内容
-                    const originalContent = typeof msg.content === 'string' 
-                        ? msg.content 
-                        : getMessageText(msg.content);
-                    
+                    const originalContent =
+                        typeof msg.content === 'string' ? msg.content : getMessageText(msg.content);
+
                     // 构建上下文文本
                     const contextText = msg.contextDocuments
                         .map(doc => {
@@ -2958,16 +2966,16 @@
                             return `## ${label}: ${doc.title}\n\n**BlockID**: \`${doc.id}\`\n\n\`\`\`markdown\n${doc.content}\n\`\`\``;
                         })
                         .join('\n\n---\n\n');
-                    
+
                     // 如果有图片附件，使用多模态格式
                     if (hasImages) {
                         const contentParts: any[] = [];
-                        
+
                         // 添加文本内容和上下文
                         let textContent = originalContent;
                         textContent += `\n\n---\n\n以下是相关内容作为上下文：\n\n${contextText}`;
                         contentParts.push({ type: 'text', text: textContent });
-                        
+
                         // 添加图片
                         msg.attachments?.forEach(att => {
                             if (att.type === 'image') {
@@ -2977,25 +2985,25 @@
                                 });
                             }
                         });
-                        
+
                         // 添加文本文件内容
                         const fileTexts = msg.attachments
                             ?.filter(att => att.type === 'file')
                             .map(att => `## 文件: ${att.name}\n\n\`\`\`\n${att.data}\n\`\`\`\n`)
                             .join('\n\n---\n\n');
-                        
+
                         if (fileTexts) {
                             contentParts.push({
                                 type: 'text',
                                 text: `\n\n以下是附件文件内容：\n\n${fileTexts}`,
                             });
                         }
-                        
+
                         baseMsg.content = contentParts;
                     } else {
                         // 纯文本格式
                         let enhancedContent = originalContent;
-                        
+
                         // 添加文本文件附件
                         if (msg.attachments && msg.attachments.length > 0) {
                             const attachmentTexts = msg.attachments
@@ -3007,15 +3015,15 @@
                                 })
                                 .filter(Boolean)
                                 .join('\n\n---\n\n');
-                            
+
                             if (attachmentTexts) {
                                 enhancedContent += `\n\n---\n\n以下是附件内容：\n\n${attachmentTexts}`;
                             }
                         }
-                        
+
                         // 添加上下文文档
                         enhancedContent += `\n\n---\n\n以下是相关内容作为上下文：\n\n${contextText}`;
-                        
+
                         baseMsg.content = enhancedContent;
                     }
                 }
@@ -3445,7 +3453,8 @@
                                             on:click={() => openDocument(doc.id)}
                                             title={doc.title}
                                         >
-                                            {doc.type === 'doc' ? '📄' : '📝'} {doc.title}
+                                            {doc.type === 'doc' ? '📄' : '📝'}
+                                            {doc.title}
                                         </button>
                                     {/each}
                                 </div>
