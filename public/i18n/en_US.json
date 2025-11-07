@@ -261,7 +261,8 @@
             "noMessage": "Message not found",
             "requestFailed": "AI Request Failed",
             "applyEditFailed": "Failed to apply edit",
-            "getBlockFailed": "Failed to get block content"
+            "getBlockFailed": "Failed to get block content",
+            "autoUploadImageFailed": "Failed to auto upload image"
         },
         "success": {
             "copySuccess": "Message copied",
@@ -274,7 +275,8 @@
             "saveSessionSuccess": "Session saved",
             "applyEditSuccess": "Edit applied successfully",
             "insertBlockSuccess": "New block inserted successfully",
-            "rejectEditSuccess": "Edit rejected"
+            "rejectEditSuccess": "Edit rejected",
+            "imageAutoUploaded": "Image automatically added as attachment"
         },
         "confirm": {
             "clearChat": {
