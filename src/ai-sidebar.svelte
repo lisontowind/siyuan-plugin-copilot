@@ -3838,17 +3838,6 @@
         isPromptManagerOpen = true;
     }
 
-    async function deletePrompt(promptId: string) {
-        confirm(
-            t('aiSidebar.confirm.deletePrompt.title'),
-            t('aiSidebar.confirm.deletePrompt.message'),
-            async () => {
-                prompts = prompts.filter(p => p.id !== promptId);
-                await savePrompts();
-            }
-        );
-    }
-
     // 工具配置管理
     async function loadToolsConfig() {
         try {
@@ -5954,7 +5943,7 @@
                                 bind:value={newPromptContent}
                                 placeholder="输入提示词内容"
                                 class="b3-text-field ai-sidebar__prompt-textarea"
-                                rows="6"
+                                rows="20"
                             ></textarea>
                         </div>
                         <div class="ai-sidebar__prompt-form-actions">
@@ -5969,49 +5958,6 @@
                             </button>
                         </div>
                     </div>
-
-                    {#if prompts.length > 0}
-                        <div class="ai-sidebar__prompt-divider"></div>
-                        <div class="ai-sidebar__prompt-saved-list">
-                            <h5 class="ai-sidebar__prompt-saved-title">已保存的提示词</h5>
-                            <div class="ai-sidebar__prompt-saved-items">
-                                {#each prompts as prompt (prompt.id)}
-                                    <div class="ai-sidebar__prompt-saved-item">
-                                        <div class="ai-sidebar__prompt-saved-info">
-                                            <div class="ai-sidebar__prompt-saved-item-title">
-                                                {prompt.title}
-                                            </div>
-                                            <div class="ai-sidebar__prompt-saved-item-content">
-                                                {prompt.content.length > 100
-                                                    ? prompt.content.substring(0, 100) + '...'
-                                                    : prompt.content}
-                                            </div>
-                                        </div>
-                                        <div class="ai-sidebar__prompt-saved-actions">
-                                            <button
-                                                class="b3-button b3-button--text"
-                                                on:click={() => editPrompt(prompt)}
-                                                title="编辑"
-                                            >
-                                                <svg class="b3-button__icon">
-                                                    <use xlink:href="#iconEdit"></use>
-                                                </svg>
-                                            </button>
-                                            <button
-                                                class="b3-button b3-button--text"
-                                                on:click={() => deletePrompt(prompt.id)}
-                                                title="删除"
-                                            >
-                                                <svg class="b3-button__icon">
-                                                    <use xlink:href="#iconTrashcan"></use>
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-                                {/each}
-                            </div>
-                        </div>
-                    {/if}
                 </div>
             </div>
         </div>
