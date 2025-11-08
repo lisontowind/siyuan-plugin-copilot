@@ -46,7 +46,7 @@ pnpm run dev
 
 ## 📄 License
 
-MIT License
+GPL3 License
 
 ## 🙏 Acknowledgments
 
