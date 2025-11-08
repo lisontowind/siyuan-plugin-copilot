@@ -24,16 +24,30 @@
     const builtInProviderNames: Record<string, string> = {
         gemini: t('platform.builtIn.gemini'),
         deepseek: t('platform.builtIn.deepseek'),
+        moonshot: t('platform.builtIn.moonshot'),
         openai: t('platform.builtIn.openai'),
         volcano: t('platform.builtIn.volcano'),
+        v3: t('platform.builtIn.v3'),
     };
 
     // 内置平台的默认 API 地址
     const builtInProviderDefaultUrls: Record<string, string> = {
         gemini: 'https://generativelanguage.googleapis.com',
         deepseek: 'https://api.deepseek.com',
+        moonshot: 'https://api.moonshot.cn',
         openai: 'https://api.openai.com',
         volcano: 'https://ark.cn-beijing.volces.com',
+        v3: 'https://api.v3.cm',
+    };
+
+    // 内置平台的官网链接
+    const builtInProviderWebsites: Record<string, string> = {
+        gemini: 'https://aistudio.google.com/apikey',
+        deepseek: 'https://platform.deepseek.com/',
+        moonshot: 'https://platform.moonshot.cn/',
+        openai: 'https://platform.openai.com/',
+        volcano: 'https://console.volcengine.com/ark',
+        v3: 'https://api.gpt.ge/register?aff=fQIZ',
     };
 
     // 当前选中的平台ID
@@ -353,9 +367,19 @@
                 gemini: { apiKey: '', customApiUrl: '', models: [] },
                 deepseek: { apiKey: '', customApiUrl: '', models: [] },
                 openai: { apiKey: '', customApiUrl: '', models: [] },
+                moonshot: { apiKey: '', customApiUrl: '', models: [] },
                 volcano: { apiKey: '', customApiUrl: '', models: [] },
+                v3: { apiKey: '', customApiUrl: '', models: [] },
                 customProviders: [],
             };
+        }
+
+        // 确保每个内置平台都存在（支持旧配置升级）
+        const builtInPlatformIds = ['gemini', 'deepseek', 'openai', 'moonshot', 'volcano', 'v3'];
+        for (const platformId of builtInPlatformIds) {
+            if (!settings.aiProviders[platformId]) {
+                settings.aiProviders[platformId] = { apiKey: '', customApiUrl: '', models: [] };
+            }
         }
 
         // 确保 customProviders 数组存在
@@ -549,6 +573,7 @@
                                     providerId={selectedProviderId}
                                     providerName={selectedProviderName}
                                     defaultApiUrl={builtInProviderDefaultUrls[selectedProviderId]}
+                                    websiteUrl={builtInProviderWebsites[selectedProviderId]}
                                     bind:config={settings.aiProviders[selectedProviderId]}
                                     isCustomProvider={false}
                                     on:change={handleProviderChange}
@@ -562,6 +587,7 @@
                                             providerId={customProvider.id}
                                             providerName={customProvider.name}
                                             defaultApiUrl=""
+                                            websiteUrl=""
                                             bind:config={customProvider}
                                             isCustomProvider={true}
                                             on:change={handleProviderChange}

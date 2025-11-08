@@ -8,6 +8,7 @@
     export let providerId: string;
     export let providerName: string;
     export let defaultApiUrl: string = ''; // 默认 API 地址
+    export let websiteUrl: string = ''; // 平台官网链接
     export let config: ProviderConfig;
     export let isCustomProvider: boolean = false; // 是否为自定义平台
 
@@ -243,7 +244,23 @@
                 </button>
             </div>
         {:else}
-            <h4>{providerName}</h4>
+            <div class="provider-header-content">
+                <h4>{providerName}</h4>
+                {#if websiteUrl}
+                    <a
+                        href={websiteUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="platform-link"
+                        title="访问平台官网"
+                    >
+                        <svg class="b3-button__icon">
+                            <use xlink:href="#iconLink"></use>
+                        </svg>
+                        <span>访问平台</span>
+                    </a>
+                {/if}
+            </div>
             {#if isCustomProvider}
                 <button
                     class="b3-button b3-button--text edit-name-button"
@@ -551,7 +568,35 @@
             font-size: 16px;
             font-weight: 600;
             color: var(--b3-theme-on-background);
-            flex: 1;
+        }
+    }
+
+    .provider-header-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+    }
+
+    .platform-link {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        font-size: 12px;
+        color: var(--b3-theme-primary);
+        text-decoration: none;
+        border-radius: 4px;
+        transition: all 0.2s;
+
+        &:hover {
+            background: var(--b3-theme-primary-lightest);
+            color: var(--b3-theme-primary);
+        }
+
+        svg {
+            width: 14px;
+            height: 14px;
         }
     }
 

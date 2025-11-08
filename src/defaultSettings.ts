@@ -46,7 +46,17 @@ export const getDefaultSettings = () => ({
             customApiUrl: '',
             models: []
         },
+        moonshot: {
+            apiKey: '',
+            customApiUrl: '',
+            models: []
+        },
         volcano: {
+            apiKey: '',
+            customApiUrl: '',
+            models: []
+        },
+        v3: {
             apiKey: '',
             customApiUrl: '',
             models: []

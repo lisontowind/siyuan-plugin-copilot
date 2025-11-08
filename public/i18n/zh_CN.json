@@ -342,9 +342,10 @@
         "builtIn": {
             "gemini": "Gemini",
             "deepseek": "DeepSeek",
-            "moonshot": "月之暗面",
+            "moonshot": "月之暗面 (Kimi)",
             "openai": "OpenAI",
-            "volcano": "火山引擎"
+            "volcano": "火山引擎",
+            "v3": "V3 API"
         },
         "select": "请选择平台",
         "selectHint": "请选择一个平台以查看或编辑其配置",

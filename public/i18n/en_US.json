@@ -343,9 +343,10 @@
         "builtIn": {
             "gemini": "Gemini",
             "deepseek": "DeepSeek",
-            "moonshot": "Moonshot",
+            "moonshot": "Moonshot(Kimi)",
             "openai": "OpenAI",
-            "volcano": "Volcano Engine"
+            "volcano": "Volcano Engine",
+            "v3": "V3 API"
         },
         "select": "Please select platform",
         "selectHint": "Please select a platform to view or edit its configuration",

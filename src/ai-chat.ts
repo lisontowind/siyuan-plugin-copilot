@@ -94,7 +94,7 @@ export interface ModelInfo {
     provider: string;
 }
 
-export type AIProvider = 'gemini' | 'deepseek' | 'openai' | 'volcano' | 'custom';
+export type AIProvider = 'gemini' | 'deepseek' | 'openai' | 'moonshot' | 'volcano' | 'v3' | 'custom';
 
 interface ProviderConfig {
     name: string;
@@ -102,6 +102,7 @@ interface ProviderConfig {
     modelsEndpoint: string;
     chatEndpoint: string;
     apiKeyHeader: string;
+    websiteUrl?: string; // 平台官网链接
 }
 
 // 预定义的AI平台配置
@@ -111,28 +112,48 @@ const PROVIDER_CONFIGS: Record<AIProvider, ProviderConfig> = {
         baseUrl: 'https://generativelanguage.googleapis.com',
         modelsEndpoint: '/v1beta/models',
         chatEndpoint: '/v1beta/models/{model}:streamGenerateContent',
-        apiKeyHeader: 'x-goog-api-key'
+        apiKeyHeader: 'x-goog-api-key',
+        websiteUrl: 'https://aistudio.google.com/apikey'
     },
     deepseek: {
         name: 'DeepSeek',
         baseUrl: 'https://api.deepseek.com',
         modelsEndpoint: '/v1/models',
         chatEndpoint: '/v1/chat/completions',
-        apiKeyHeader: 'Authorization'
+        apiKeyHeader: 'Authorization',
+        websiteUrl: 'https://platform.deepseek.com/'
     },
     openai: {
         name: 'OpenAI',
         baseUrl: 'https://api.openai.com',
         modelsEndpoint: '/v1/models',
         chatEndpoint: '/v1/chat/completions',
-        apiKeyHeader: 'Authorization'
+        apiKeyHeader: 'Authorization',
+        websiteUrl: 'https://platform.openai.com/'
+    },
+    moonshot: {
+        name: 'Moonshot',
+        baseUrl: 'https://api.moonshot.cn',
+        modelsEndpoint: '/v1/models',
+        chatEndpoint: '/v1/chat/completions',
+        apiKeyHeader: 'Authorization',
+        websiteUrl: 'https://platform.moonshot.cn/'
     },
     volcano: {
         name: '火山引擎',
         baseUrl: 'https://ark.cn-beijing.volces.com',
         modelsEndpoint: '/api/v3/models',
         chatEndpoint: '/api/v3/chat/completions',
-        apiKeyHeader: 'Authorization'
+        apiKeyHeader: 'Authorization',
+        websiteUrl: 'https://console.volcengine.com/ark'
+    },
+    v3: {
+        name: 'V3 API',
+        baseUrl: 'https://api.v3.cm',
+        modelsEndpoint: '/v1/models',
+        chatEndpoint: '/v1/chat/completions',
+        apiKeyHeader: 'Authorization',
+        websiteUrl: 'https://api.gpt.ge/register?aff=fQIZ'
     },
     custom: {
         name: 'Custom',
@@ -142,6 +163,13 @@ const PROVIDER_CONFIGS: Record<AIProvider, ProviderConfig> = {
         apiKeyHeader: 'Authorization'
     }
 };
+
+/**
+ * 获取平台配置信息
+ */
+export function getProviderConfig(provider: AIProvider): ProviderConfig {
+    return PROVIDER_CONFIGS[provider];
+}
 
 /**
  * 根据自定义API URL和默认端点，获取基础URL和实际端点
@@ -190,7 +218,7 @@ export async function fetchModels(
     apiKey: string,
     customApiUrl?: string
 ): Promise<ModelInfo[]> {
-    const isBuiltIn = ['gemini', 'deepseek', 'openai', 'volcano'].includes(provider);
+    const isBuiltIn = ['gemini', 'deepseek', 'openai', 'moonshot', 'volcano', 'v3'].includes(provider);
     const config = isBuiltIn ? PROVIDER_CONFIGS[provider as AIProvider] : PROVIDER_CONFIGS.custom;
 
     let url: string;
@@ -711,7 +739,7 @@ export async function chat(
     options: ChatOptions,
     customApiUrl?: string
 ): Promise<void> {
-    const isBuiltIn = ['gemini', 'deepseek', 'openai', 'volcano'].includes(provider);
+    const isBuiltIn = ['gemini', 'deepseek', 'openai', 'moonshot', 'volcano', 'v3'].includes(provider);
     const config = isBuiltIn ? PROVIDER_CONFIGS[provider as AIProvider] : PROVIDER_CONFIGS.custom;
 
     let url: string;
