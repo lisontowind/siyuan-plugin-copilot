@@ -124,6 +124,10 @@
     let showOpenWindowMenu = false;
     let openWindowMenuButton: HTMLButtonElement;
 
+    // 全屏模式
+    let isFullscreen = false;
+    let sidebarContainer: HTMLElement;
+
     // 当前选中的提供商和模型
     let currentProvider = '';
     let currentModelId = '';
@@ -363,6 +367,8 @@
         document.addEventListener('scroll', closeContextMenu, true);
         // 添加全局复制事件监听器
         document.addEventListener('copy', handleCopyEvent);
+        // 添加全屏状态变化监听器
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
     });
 
     onDestroy(async () => {
@@ -377,6 +383,8 @@
         document.removeEventListener('scroll', closeContextMenu, true);
         // 移除全局复制事件监听器
         document.removeEventListener('copy', handleCopyEvent);
+        // 移除全屏状态变化监听器
+        document.removeEventListener('fullscreenchange', handleFullscreenChange);
 
         // 保存工具配置
         if (isToolConfigLoaded) {
@@ -627,6 +635,31 @@
         } else if (isLoading) {
             // 如果正在加载且用户滚动离开底部，停止自动滚动
             autoScroll = false;
+        }
+    }
+
+    // 全屏切换
+    function toggleFullscreen() {
+        if (!sidebarContainer) return;
+
+        if (!isFullscreen) {
+            // 进入全屏
+            if (sidebarContainer.requestFullscreen) {
+                sidebarContainer.requestFullscreen().then(() => {
+                    isFullscreen = true;
+                }).catch(err => {
+                    console.error('进入全屏失败:', err);
+                });
+            }
+        } else {
+            // 退出全屏
+            if (document.exitFullscreen) {
+                document.exitFullscreen().then(() => {
+                    isFullscreen = false;
+                }).catch(err => {
+                    console.error('退出全屏失败:', err);
+                });
+            }
         }
     }
 
@@ -2231,6 +2264,11 @@
                 return;
             }
         }
+    }
+
+    // 处理全屏状态变化
+    function handleFullscreenChange() {
+        isFullscreen = !!document.fullscreenElement && document.fullscreenElement === sidebarContainer;
     }
 
     // 使用思源内置的Lute渲染markdown为HTML
@@ -4987,7 +5025,7 @@
     $: messageGroups = groupMessages(messages);
 </script>
 
-<div class="ai-sidebar">
+<div class="ai-sidebar" class:ai-sidebar--fullscreen={isFullscreen} bind:this={sidebarContainer}>
     <div class="ai-sidebar__header">
         <h3 class="ai-sidebar__title">
             {#if hasUnsavedChanges}
@@ -5059,6 +5097,15 @@
                 title={t('aiSidebar.actions.clear')}
             >
                 <svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg>
+            </button>
+            <button
+                class="b3-button b3-button--text"
+                on:click={toggleFullscreen}
+                title={isFullscreen ? '退出全屏' : '全屏查看'}
+            >
+                <svg class="b3-button__icon">
+                    <use xlink:href={isFullscreen ? "#iconFullscreenExit" : "#iconFullscreen"}></use>
+                </svg>
             </button>
             <button
                 class="b3-button b3-button--text"
@@ -9658,6 +9705,69 @@
                     background: var(--b3-theme-on-surface-light);
                 }
             }
+        }
+    }
+
+    // 全屏模式样式
+    .ai-sidebar--fullscreen {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        z-index: 9999 !important;
+        background: var(--b3-theme-background) !important;
+        border: none !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-sidebar__header {
+        background: var(--b3-theme-surface) !important;
+        border-bottom: 1px solid var(--b3-border-color) !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-sidebar__messages {
+        flex: 1 !important;
+        padding: 20px !important;
+        gap: 16px !important;
+        max-height: calc(100vh - 140px) !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-sidebar__input-container {
+        background: var(--b3-theme-surface) !important;
+        border-top: 1px solid var(--b3-border-color) !important;
+        box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1) !important;
+        padding: 16px 20px !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-message__content {
+        font-size: 15px !important;
+        line-height: 1.7 !important;
+        padding: 16px 18px !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-sidebar__input {
+        font-size: 15px !important;
+        padding: 14px 18px !important;
+        padding-right: 52px !important;
+        min-height: 50px !important;
+        max-height: 300px !important;
+    }
+
+    .ai-sidebar--fullscreen .ai-sidebar__send-btn {
+        width: 40px !important;
+        height: 40px !important;
+        min-width: 40px !important;
+
+        .b3-button__icon {
+            width: 20px !important;
+            height: 20px !important;
         }
     }
 </style>

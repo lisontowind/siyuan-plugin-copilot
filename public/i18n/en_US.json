@@ -532,5 +532,9 @@
             "card": "Card View",
             "tab": "Tab View"
         }
+    },
+    "fullscreen": {
+        "title": "Fullscreen View",
+        "exit": "Exit Fullscreen"
     }
 }
