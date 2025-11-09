@@ -259,8 +259,17 @@
         currentProvider = settings.currentProvider || '';
         currentModelId = settings.currentModelId || '';
 
-        // 初始化多模型选择
-        selectedMultiModels = settings.selectedMultiModels || [];
+        // 初始化多模型选择，过滤掉无效的模型
+        selectedMultiModels = (settings.selectedMultiModels || []).filter(model => {
+            const config = getProviderAndModelConfig(model.provider, model.modelId);
+            return config !== null; // 只保留有效的模型
+        });
+        
+        // 如果过滤后的模型列表与原列表不同，保存更新后的列表
+        if (selectedMultiModels.length !== (settings.selectedMultiModels || []).length) {
+            settings.selectedMultiModels = selectedMultiModels;
+            await plugin.saveSettings(settings);
+        }
 
         // 初始化字体大小设置
         messageFontSize = settings.messageFontSize || 12;
@@ -308,9 +317,22 @@
                     currentModelId = newSettings.currentModelId;
                 }
 
-                // 更新多模型选择
+                // 更新多模型选择，过滤掉无效的模型
                 if (newSettings.selectedMultiModels !== undefined) {
-                    selectedMultiModels = newSettings.selectedMultiModels;
+                    const validModels = newSettings.selectedMultiModels.filter(model => {
+                        const config = getProviderAndModelConfig(model.provider, model.modelId);
+                        return config !== null;
+                    });
+                    selectedMultiModels = validModels;
+                    
+                    // 如果过滤后的模型列表与原列表不同，更新设置
+                    if (validModels.length !== newSettings.selectedMultiModels.length) {
+                        settings.selectedMultiModels = validModels;
+                        // 异步保存设置
+                        plugin.saveSettings(settings).catch(err => {
+                            console.error('Failed to save filtered multi-models:', err);
+                        });
+                    }
                 }
 
                 // 实时更新字体大小设置
@@ -1037,14 +1059,14 @@
         // 设置布局为页签样式
         multiModelLayout = 'tab';
 
-        // 创建assistant消息，只包含多模型完整结果，不单独显示选中的内容
+        // 创建assistant消息，包含多模型完整结果
         const assistantMessage: Message = {
             role: 'assistant',
-            content: '', // 不显示单独的内容，只通过multiModelResponses显示
+            content: selectedResponse.content || '', // 保存被选中的内容，以便复制、编辑等操作
+            thinking: selectedResponse.thinking, // 保存思考内容
             multiModelResponses: multiModelResponses.map((response, i) => ({
                 ...response,
                 isSelected: i === index, // 标记哪个被选择
-                modelName: i === index ? ' ✅' + response.modelName : response.modelName, // 选择的模型名添加✅
             })),
         };
 
@@ -2067,7 +2089,9 @@
             .filter(msg => msg.role !== 'system')
             .map(msg => {
                 const role = msg.role === 'user' ? '👤 **User**' : '🤖 **Assistant**';
-                return `${role}\n\n${msg.content}\n`;
+                // 获取实际内容（包括多模型响应）
+                const content = getActualMessageContent(msg);
+                return `${role}\n\n${content}\n`;
             })
             .join('\n---\n\n');
 
@@ -2094,16 +2118,14 @@
             const firstSuccessIndex = multiModelResponses.findIndex(r => !r.error && !r.isLoading);
 
             if (firstSuccessIndex !== -1) {
+                const selectedResponse = multiModelResponses[firstSuccessIndex];
                 const assistantMessage: Message = {
                     role: 'assistant',
-                    content: '',
+                    content: selectedResponse.content || '',
+                    thinking: selectedResponse.thinking,
                     multiModelResponses: multiModelResponses.map((response, i) => ({
                         ...response,
                         isSelected: i === firstSuccessIndex,
-                        modelName:
-                            i === firstSuccessIndex
-                                ? '✅' + response.modelName
-                                : response.modelName,
                     })),
                 };
 
@@ -2186,6 +2208,24 @@
             .filter(part => part.type === 'text' && part.text)
             .map(part => part.text)
             .join('\n');
+    }
+
+    // 获取消息的实际内容（处理多模型响应）
+    function getActualMessageContent(message: Message): string {
+        // 如果有多模型响应，返回被选中的模型的内容
+        if (message.multiModelResponses && message.multiModelResponses.length > 0) {
+            const selectedResponse = message.multiModelResponses.find(r => r.isSelected);
+            if (selectedResponse && selectedResponse.content) {
+                return getMessageText(selectedResponse.content);
+            }
+            // 如果没有选中的，返回第一个有内容的
+            const firstWithContent = message.multiModelResponses.find(r => r.content);
+            if (firstWithContent) {
+                return getMessageText(firstWithContent.content);
+            }
+        }
+        // 否则返回常规内容
+        return getMessageText(message.content);
     }
 
     // 将 LaTeX 数学公式格式转换为 Markdown 格式（永久转换）
@@ -2689,7 +2729,7 @@
 
     // 复制单条消息
     function copyMessage(content: string | MessageContent[]) {
-        const textContent = getMessageText(content);
+        const textContent = typeof content === 'string' ? content : getMessageText(content);
         navigator.clipboard
             .writeText(textContent)
             .then(() => {
@@ -3313,16 +3353,14 @@
             const firstSuccessIndex = multiModelResponses.findIndex(r => !r.error && !r.isLoading);
 
             if (firstSuccessIndex !== -1) {
+                const selectedResponse = multiModelResponses[firstSuccessIndex];
                 const assistantMessage: Message = {
                     role: 'assistant',
-                    content: '',
+                    content: selectedResponse.content || '',
+                    thinking: selectedResponse.thinking,
                     multiModelResponses: multiModelResponses.map((response, i) => ({
                         ...response,
                         isSelected: i === firstSuccessIndex,
-                        modelName:
-                            i === firstSuccessIndex
-                                ? '✅' + response.modelName
-                                : response.modelName,
                     })),
                 };
 
@@ -3666,9 +3704,27 @@
                     continue;
                 }
 
-                // 处理消息内容
-                const content = getMessageText(message.content);
+                // 处理消息内容（包括多模型响应）
+                const content = getActualMessageContent(message);
                 markdown += content + '\n\n';
+
+                // 如果有多模型响应，添加所有模型的回答
+                if (message.multiModelResponses && message.multiModelResponses.length > 0) {
+                    markdown += `### 多模型对比\n\n`;
+                    for (const response of message.multiModelResponses) {
+                        const selectedMark = response.isSelected ? ' ✅' : '';
+                        markdown += `#### ${response.modelName}${selectedMark}\n\n`;
+                        if (response.thinking) {
+                            markdown += `**思考过程：**\n\n${response.thinking}\n\n`;
+                        }
+                        if (response.content) {
+                            markdown += `${getMessageText(response.content)}\n\n`;
+                        }
+                        if (response.error) {
+                            markdown += `**错误：** ${response.error}\n\n`;
+                        }
+                    }
+                }
 
                 // 如果有思考内容，添加思考信息
                 if (message.thinking) {
@@ -4262,7 +4318,7 @@
     // 开始编辑消息
     function startEditMessage(index: number) {
         editingMessageIndex = index;
-        editingMessageContent = getMessageText(messages[index].content);
+        editingMessageContent = getActualMessageContent(messages[index]);
         isEditDialogOpen = true;
     }
 
@@ -4278,7 +4334,22 @@
         if (editingMessageIndex === null) return;
 
         const message = messages[editingMessageIndex];
-        message.content = editingMessageContent.trim();
+        const newContent = editingMessageContent.trim();
+        
+        // 如果是多模型响应，更新被选中的模型的内容
+        if (message.multiModelResponses && message.multiModelResponses.length > 0) {
+            const selectedIndex = message.multiModelResponses.findIndex(r => r.isSelected);
+            if (selectedIndex !== -1) {
+                // 更新被选中模型的内容
+                message.multiModelResponses[selectedIndex].content = newContent;
+            }
+            // 同时更新主 content 字段（用于显示和其他操作）
+            message.content = newContent;
+        } else {
+            // 普通消息，直接更新 content
+            message.content = newContent;
+        }
+        
         messages = [...messages];
         hasUnsavedChanges = true;
 
@@ -4312,9 +4383,32 @@
             return;
         }
 
+        // 检查目标消息或后续消息是否包含多模型响应
+        let useMultiModel = false;
+        let previousMultiModels: Array<{ provider: string; modelId: string }> = [];
+        
+        if (targetMessage.role === 'assistant' && targetMessage.multiModelResponses) {
+            useMultiModel = true;
+            // 提取之前使用的模型列表
+            previousMultiModels = targetMessage.multiModelResponses.map(r => ({
+                provider: r.provider,
+                modelId: r.modelId,
+            }));
+        }
+
         // 如果是用户消息，删除该消息及之后的所有消息，然后重新发送
         // 如果是AI消息，删除该消息及之后的所有消息，然后重新请求
         if (targetMessage.role === 'user') {
+            // 检查下一条消息是否是多模型响应
+            const nextMessage = messages[index + 1];
+            if (nextMessage && nextMessage.role === 'assistant' && nextMessage.multiModelResponses) {
+                useMultiModel = true;
+                previousMultiModels = nextMessage.multiModelResponses.map(r => ({
+                    provider: r.provider,
+                    modelId: r.modelId,
+                }));
+            }
+
             // 删除该用户消息及之后的所有消息
             messages = messages.slice(0, index);
             hasUnsavedChanges = true;
@@ -4338,6 +4432,38 @@
         if (!lastUserMessage) {
             pushErrMsg(t('aiSidebar.errors.noUserMessage'));
             return;
+        }
+
+        // 如果之前使用了多模型，且在问答模式下，重新使用多模型
+        if (useMultiModel && previousMultiModels.length > 0 && chatMode === 'ask') {
+            // 过滤掉无效的模型（提供商或模型已被删除）
+            const validPreviousModels = previousMultiModels.filter(model => {
+                const config = getProviderAndModelConfig(model.provider, model.modelId);
+                return config !== null;
+            });
+
+            // 如果没有有效的模型，回退到单模型生成
+            if (validPreviousModels.length === 0) {
+                pushMsg(t('aiSidebar.info.noValidMultiModels') || '之前选择的多模型已失效，将使用当前选择的模型重新生成');
+                // 继续执行后面的单模型生成逻辑
+            } else {
+                // 临时保存当前的多模型选择
+                const originalMultiModels = [...selectedMultiModels];
+                const originalEnableMultiModel = enableMultiModel;
+
+                // 设置为之前使用的有效模型
+                selectedMultiModels = validPreviousModels;
+                enableMultiModel = true;
+
+                // 调用多模型发送
+                await sendMultiModelMessage();
+
+                // 恢复原来的设置
+                selectedMultiModels = originalMultiModels;
+                enableMultiModel = originalEnableMultiModel;
+                
+                return; // 多模型发送完成，直接返回
+            }
         }
 
         // 重新发送请求
@@ -4958,6 +5084,28 @@
                                                 0}
                                             {#if currentTabIndex === index}
                                                 <div class="ai-message__multi-model-tab-panel">
+                                                    <!-- 添加面板头部，包含复制按钮 -->
+                                                    <div class="ai-message__multi-model-tab-panel-header">
+                                                        <div class="ai-message__multi-model-tab-panel-title">
+                                                            <span class="ai-message__multi-model-tab-panel-model-name">
+                                                                {response.modelName}
+                                                            </span>
+                                                        </div>
+                                                        <div class="ai-message__multi-model-tab-panel-actions">
+                                                            {#if !response.error && response.content}
+                                                                <button
+                                                                    class="b3-button b3-button--text ai-sidebar__multi-model-copy-btn"
+                                                                    on:click={() => copyMessage(response.content || '')}
+                                                                    title={t('aiSidebar.actions.copyMessage')}
+                                                                >
+                                                                    <svg class="b3-button__icon">
+                                                                        <use xlink:href="#iconCopy"></use>
+                                                                    </svg>
+                                                                </button>
+                                                            {/if}
+                                                        </div>
+                                                    </div>
+
                                                     {#if response.thinking}
                                                         <div class="ai-message__thinking">
                                                             <div
@@ -5296,7 +5444,7 @@
                 <div class="ai-message__actions">
                     <button
                         class="b3-button b3-button--text ai-message__action"
-                        on:click={() => copyMessage(firstMessage.content)}
+                        on:click={() => copyMessage(getActualMessageContent(firstMessage))}
                         title={t('aiSidebar.actions.copyMessage')}
                     >
                         <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
@@ -5459,16 +5607,29 @@
                                             </span>
                                         {/if}
                                     </div>
-                                    {#if !response.isLoading && !response.error && isWaitingForAnswerSelection}
-                                        <button
-                                            class="b3-button b3-button--primary ai-sidebar__multi-model-select-btn"
-                                            on:click={() => selectMultiModelAnswer(index)}
-                                        >
-                                            {selectedAnswerIndex === index
-                                                ? t('multiModel.answerSelected')
-                                                : t('multiModel.selectAnswer')}
-                                        </button>
-                                    {/if}
+                                    <div class="ai-sidebar__multi-model-card-actions">
+                                        {#if !response.isLoading && !response.error}
+                                            <button
+                                                class="b3-button b3-button--text ai-sidebar__multi-model-copy-btn"
+                                                on:click={() => copyMessage(response.content || '')}
+                                                title={t('aiSidebar.actions.copyMessage')}
+                                            >
+                                                <svg class="b3-button__icon">
+                                                    <use xlink:href="#iconCopy"></use>
+                                                </svg>
+                                            </button>
+                                        {/if}
+                                        {#if !response.isLoading && !response.error && isWaitingForAnswerSelection}
+                                            <button
+                                                class="b3-button b3-button--primary ai-sidebar__multi-model-select-btn"
+                                                on:click={() => selectMultiModelAnswer(index)}
+                                            >
+                                                {selectedAnswerIndex === index
+                                                    ? t('multiModel.answerSelected')
+                                                    : t('multiModel.selectAnswer')}
+                                            </button>
+                                        {/if}
+                                    </div>
                                 </div>
 
                                 {#if response.thinking}
@@ -5591,17 +5752,30 @@
                                                 </span>
                                             {/if}
                                         </div>
-                                        {#if !response.isLoading && !response.error && isWaitingForAnswerSelection}
-                                            <button
-                                                class="b3-button b3-button--primary ai-sidebar__multi-model-select-btn"
-                                                on:click={() =>
-                                                    selectMultiModelAnswer(selectedTabIndex)}
-                                            >
-                                                {selectedAnswerIndex === selectedTabIndex
-                                                    ? t('multiModel.answerSelected')
-                                                    : t('multiModel.selectAnswer')}
-                                            </button>
-                                        {/if}
+                                        <div class="ai-sidebar__multi-model-tab-panel-actions">
+                                            {#if !response.isLoading && !response.error}
+                                                <button
+                                                    class="b3-button b3-button--text ai-sidebar__multi-model-copy-btn"
+                                                    on:click={() => copyMessage(response.content || '')}
+                                                    title={t('aiSidebar.actions.copyMessage')}
+                                                >
+                                                    <svg class="b3-button__icon">
+                                                        <use xlink:href="#iconCopy"></use>
+                                                    </svg>
+                                                </button>
+                                            {/if}
+                                            {#if !response.isLoading && !response.error && isWaitingForAnswerSelection}
+                                                <button
+                                                    class="b3-button b3-button--primary ai-sidebar__multi-model-select-btn"
+                                                    on:click={() =>
+                                                        selectMultiModelAnswer(selectedTabIndex)}
+                                                >
+                                                    {selectedAnswerIndex === selectedTabIndex
+                                                        ? t('multiModel.answerSelected')
+                                                        : t('multiModel.selectAnswer')}
+                                                </button>
+                                            {/if}
+                                        </div>
                                     </div>
 
                                     {#if response.thinking}
@@ -8613,6 +8787,24 @@
         flex: 1;
     }
 
+    .ai-sidebar__multi-model-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .ai-sidebar__multi-model-copy-btn {
+        flex-shrink: 0;
+        padding: 4px 8px;
+        height: auto;
+
+        .b3-button__icon {
+            width: 14px;
+            height: 14px;
+        }
+    }
+
     .ai-sidebar__multi-model-card-model-name,
     .ai-sidebar__multi-model-tab-title,
     .ai-sidebar__multi-model-tab-panel-model-name {
@@ -8658,6 +8850,7 @@
         overflow-y: auto;
         max-height: 400px;
         padding: 4px;
+        user-select: text; // 允许文本选择
 
         &::-webkit-scrollbar {
             width: 6px;
@@ -8798,6 +8991,13 @@
         flex: 1;
     }
 
+    .ai-sidebar__multi-model-tab-panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
     .ai-sidebar__multi-model-tab-panel-model-name {
         font-size: 14px;
         font-weight: 600;
@@ -8826,6 +9026,7 @@
         overflow-y: auto;
         max-height: 500px;
         padding: 4px;
+        user-select: text; // 允许文本选择
 
         &::-webkit-scrollbar {
             width: 6px;
@@ -8960,11 +9161,40 @@
         border-radius: 8px;
     }
 
+    .ai-message__multi-model-tab-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--b3-border-color);
+    }
+
+    .ai-message__multi-model-tab-panel-title {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        flex: 1;
+    }
+
+    .ai-message__multi-model-tab-panel-model-name {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--b3-theme-on-background);
+    }
+
+    .ai-message__multi-model-tab-panel-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
     .ai-message__multi-model-tab-panel-content {
         flex: 1;
         overflow-y: auto;
-        max-height: 400px;
         padding: 4px;
+        user-select: text; // 允许文本选择
 
         &::-webkit-scrollbar {
             width: 6px;
