@@ -483,7 +483,7 @@
         max-height: 60vh;
         display: flex;
         flex-direction: column;
-        z-index: 1000;
+        z-index: 10;
     }
 
     .session-manager__header {

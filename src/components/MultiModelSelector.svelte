@@ -33,6 +33,10 @@
     let dropdownEl: HTMLElement | null = null;
     let _resizeHandler: () => void;
 
+    // 拖拽相关状态
+    let draggedIndex: number | null = null;
+    let dropIndicatorIndex: number | null = null;
+
     // 生成模型唯一键
     function getModelKey(provider: string, modelId: string): string {
         return `${provider}:::${modelId}`;
@@ -106,6 +110,138 @@
 
     function toggleEnableMultiModel() {
         dispatch('toggleEnable', enableMultiModel);
+    }
+
+    // 获取提供商显示名称
+    function getProviderDisplayName(providerId: string): string {
+        if (builtInProviderNames[providerId]) {
+            return builtInProviderNames[providerId];
+        }
+
+        // 查找自定义提供商
+        if (providers.customProviders && Array.isArray(providers.customProviders)) {
+            const customProvider = providers.customProviders.find((p: any) => p.id === providerId);
+            if (customProvider) {
+                return customProvider.name;
+            }
+        }
+
+        return providerId;
+    }
+
+    // 拖拽开始
+    function handleDragStart(event: DragEvent, index: number) {
+        draggedIndex = index;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/html', '');
+        }
+    }
+
+    // 拖拽经过（用于显示指示器）
+    function handleDragOver(event: DragEvent, index: number) {
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        if (draggedIndex !== null && draggedIndex !== index) {
+            const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+            const y = event.clientY - rect.top;
+            const height = rect.height;
+
+            // 如果鼠标在元素的上半部分，显示在上方
+            if (y < height / 2) {
+                dropIndicatorIndex = index;
+            } else {
+                // 如果鼠标在元素下半部分，显示在下方
+                dropIndicatorIndex = index + 1;
+            }
+        }
+    }
+
+    // 拖拽进入（用于显示指示器）
+    function handleDragEnter(event: DragEvent, index: number) {
+        event.preventDefault();
+        if (draggedIndex !== null && draggedIndex !== index) {
+            dropIndicatorIndex = index;
+        }
+    }
+
+    // 拖拽离开（清除指示器）
+    function handleDragLeave(event: DragEvent) {
+        // 只有当鼠标真正离开容器时才清除指示器
+        const relatedTarget = event.relatedTarget as HTMLElement;
+        const currentTarget = event.currentTarget as HTMLElement;
+
+        if (!currentTarget.contains(relatedTarget)) {
+            dropIndicatorIndex = null;
+        }
+    }
+
+    // 拖拽放置
+    function handleDrop(event: DragEvent, dropIndex: number) {
+        event.preventDefault();
+        if (draggedIndex !== null) {
+            let targetIndex = dropIndicatorIndex;
+
+            // 如果dropIndicatorIndex为null，使用传入的dropIndex
+            if (targetIndex === null) {
+                targetIndex = dropIndex;
+            }
+
+            // 确保目标索引有效
+            if (targetIndex !== null && targetIndex !== draggedIndex && targetIndex !== draggedIndex + 1) {
+                // 重新排列数组
+                const newModels = [...selectedModels];
+                const [draggedItem] = newModels.splice(draggedIndex, 1);
+
+                // 调整目标索引（因为我们已经移除了一个元素）
+                let adjustedTargetIndex = targetIndex;
+                if (targetIndex > draggedIndex) {
+                    adjustedTargetIndex -= 1;
+                }
+
+                newModels.splice(adjustedTargetIndex, 0, draggedItem);
+                selectedModels = newModels;
+                dispatch('change', selectedModels);
+            }
+        }
+        draggedIndex = null;
+        dropIndicatorIndex = null;
+    }
+
+    // 拖拽结束
+    function handleDragEnd() {
+        draggedIndex = null;
+        dropIndicatorIndex = null;
+    }
+
+    // 上移模型
+    function moveModelUp(index: number) {
+        if (index > 0) {
+            const newModels = [...selectedModels];
+            [newModels[index - 1], newModels[index]] = [newModels[index], newModels[index - 1]];
+            selectedModels = newModels;
+            dispatch('change', selectedModels);
+        }
+    }
+
+    // 下移模型
+    function moveModelDown(index: number) {
+        if (index < selectedModels.length - 1) {
+            const newModels = [...selectedModels];
+            [newModels[index], newModels[index + 1]] = [newModels[index + 1], newModels[index]];
+            selectedModels = newModels;
+            dispatch('change', selectedModels);
+        }
+    }
+
+    // 移除模型
+    function removeModel(index: number) {
+        const newModels = selectedModels.filter((_, i) => i !== index);
+        selectedModels = newModels;
+        dispatch('change', selectedModels);
     }
 
     // 获取模型名称
@@ -229,7 +365,7 @@
                 <div class="multi-model-selector__title">
                     {t('multiModel.selectModels')}
                 </div>
-                <div class="multi-model-selector__toggle" on:click|stopPropagation>
+                <div class="multi-model-selector__toggle" on:click|stopPropagation role="button" tabindex="0" on:keydown={(e) => e.key === 'Enter' && toggleEnableMultiModel()}>
                     <label>
                         <input
                             type="checkbox"
@@ -253,6 +389,88 @@
                     {/if}
                 </div>
             </div>
+
+            {#if selectedModels.length > 0}
+                <div class="multi-model-selector__selected-header">
+                    <div class="multi-model-selector__selected-title">
+                        {t('multiModel.selectedModels')}
+                    </div>
+                </div>
+
+                <div class="multi-model-selector__selected-models">
+                    {#each selectedModels as model, index}
+                        <!-- Drop indicator before this item -->
+                        {#if dropIndicatorIndex === index}
+                            <div class="multi-model-selector__drop-indicator multi-model-selector__drop-indicator--active"></div>
+                        {/if}
+
+                        <div
+                            class="multi-model-selector__selected-model"
+                            draggable="true"
+                            role="button"
+                            tabindex="0"
+                            on:dragstart={(e) => handleDragStart(e, index)}
+                            on:dragover={(e) => handleDragOver(e, index)}
+                            on:dragenter={(e) => handleDragEnter(e, index)}
+                            on:dragleave={handleDragLeave}
+                            on:drop={(e) => handleDrop(e, index)}
+                            on:dragend={handleDragEnd}
+                        >
+                            <div class="multi-model-selector__selected-model-content">
+                                <div class="multi-model-selector__drag-handle">
+                                    <svg class="multi-model-selector__drag-icon">
+                                        <use xlink:href="#iconDrag"></use>
+                                    </svg>
+                                </div>
+                                <div class="multi-model-selector__selected-model-info">
+                                    <span class="multi-model-selector__selected-model-name">
+                                        {getModelName(model.provider, model.modelId)}
+                                    </span>
+                                    <span class="multi-model-selector__selected-model-provider">
+                                        {getProviderDisplayName(model.provider)}
+                                    </span>
+                                </div>
+                                <div class="multi-model-selector__selected-model-actions">
+                                    <button
+                                        class="multi-model-selector__move-btn"
+                                        disabled={index === 0}
+                                        on:click={() => moveModelUp(index)}
+                                        title={t('multiModel.moveUp')}
+                                    >
+                                        <svg class="multi-model-selector__move-icon">
+                                            <use xlink:href="#iconUp"></use>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="multi-model-selector__move-btn"
+                                        disabled={index === selectedModels.length - 1}
+                                        on:click={() => moveModelDown(index)}
+                                        title={t('multiModel.moveDown')}
+                                    >
+                                        <svg class="multi-model-selector__move-icon">
+                                            <use xlink:href="#iconDown"></use>
+                                        </svg>
+                                    </button>
+                                    <button
+                                        class="multi-model-selector__remove-btn"
+                                        on:click={() => removeModel(index)}
+                                        title={t('multiModel.remove')}
+                                    >
+                                        <svg class="multi-model-selector__remove-icon">
+                                            <use xlink:href="#iconClose"></use>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    {/each}
+
+                    <!-- Drop indicator after the last item -->
+                    {#if dropIndicatorIndex === selectedModels.length}
+                        <div class="multi-model-selector__drop-indicator multi-model-selector__drop-indicator--active"></div>
+                    {/if}
+                </div>
+            {/if}
 
             <div class="multi-model-selector__tree">
                 {#each getProviderList() as provider}
@@ -402,6 +620,131 @@
         font-size: 12px;
         color: var(--b3-theme-on-surface-light);
         font-weight: 500;
+    }
+
+    .multi-model-selector__selected-header {
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--b3-border-color);
+    }
+
+    .multi-model-selector__selected-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--b3-theme-on-background);
+        margin-bottom: 2px;
+    }
+
+    .multi-model-selector__selected-models {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+
+    .multi-model-selector__drop-indicator {
+        height: 2px;
+        background: var(--b3-theme-primary);
+        border-radius: 1px;
+        margin: 2px 8px;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+
+        &--active {
+            opacity: 1;
+        }
+    }
+
+    .multi-model-selector__selected-model {
+        margin: 4px 8px;
+        background: var(--b3-theme-surface);
+        border: 1px solid var(--b3-border-color);
+        border-radius: 6px;
+        cursor: move;
+        transition: all 0.2s;
+
+        &:hover {
+            background: var(--b3-theme-surface-light);
+            border-color: var(--b3-theme-primary-light);
+        }
+
+        &:active {
+            transform: scale(0.98);
+        }
+    }
+
+    .multi-model-selector__selected-model-content {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+    }
+
+    .multi-model-selector__drag-handle {
+        flex-shrink: 0;
+        cursor: grab;
+        color: var(--b3-theme-on-surface-light);
+
+        &:active {
+            cursor: grabbing;
+        }
+    }
+
+    .multi-model-selector__drag-icon {
+        width: 14px;
+        height: 14px;
+    }
+
+    .multi-model-selector__selected-model-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .multi-model-selector__selected-model-name {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--b3-theme-on-background);
+    }
+
+    .multi-model-selector__selected-model-provider {
+        font-size: 11px;
+        color: var(--b3-theme-on-surface-light);
+    }
+
+    .multi-model-selector__selected-model-actions {
+        display: flex;
+        gap: 2px;
+        flex-shrink: 0;
+    }
+
+    .multi-model-selector__move-btn,
+    .multi-model-selector__remove-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 24px;
+        height: 24px;
+        border: none;
+        background: transparent;
+        border-radius: 4px;
+        cursor: pointer;
+        color: var(--b3-theme-on-surface-light);
+        transition: all 0.2s;
+
+        &:hover:not(:disabled) {
+            background: var(--b3-theme-surface);
+            color: var(--b3-theme-on-background);
+        }
+
+        &:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+    }
+
+    .multi-model-selector__move-icon,
+    .multi-model-selector__remove-icon {
+        width: 12px;
+        height: 12px;
     }
 
     .multi-model-selector__tree {
