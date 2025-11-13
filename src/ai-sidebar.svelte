@@ -1238,7 +1238,10 @@
             .filter(msg => {
                 if (msg.role === 'system') return false;
                 if (msg.role === 'assistant') {
-                    const text = typeof msg.content === 'string' ? msg.content : getMessageText(msg.content || []);
+                    const text =
+                        typeof msg.content === 'string'
+                            ? msg.content
+                            : getMessageText(msg.content || []);
                     return text && text.toString().trim() !== '';
                 }
                 return true;
@@ -1604,7 +1607,10 @@
             .filter(msg => {
                 if (msg.role === 'system') return false;
                 if (msg.role === 'assistant') {
-                    const text = typeof msg.content === 'string' ? msg.content : getMessageText(msg.content || []);
+                    const text =
+                        typeof msg.content === 'string'
+                            ? msg.content
+                            : getMessageText(msg.content || []);
                     return text && text.toString().trim() !== '';
                 }
                 return true;
