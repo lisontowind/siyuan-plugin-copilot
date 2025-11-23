@@ -3,6 +3,10 @@
   font-family: var(--b3-font-family);
 }
 
+.ai-sidebar__context-doc-item {
+    width: -webkit-fill-available;
+}
+
 /* 确保代码块样式正确显示 */
 .ai-message__content {
   pre {
