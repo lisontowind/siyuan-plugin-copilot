@@ -773,6 +773,29 @@
         tick().then(autoResizeTextarea);
     }
 
+    // 当消息、多模型响应或选择页签/答案变化时，高亮代码块
+    $: {
+        // 保持对变量的引用以便 Svelte 触发依赖
+        messages;
+        multiModelResponses;
+        selectedTabIndex;
+        selectedAnswerIndex;
+        thinkingCollapsed;
+
+        tick().then(async () => {
+            if (messagesContainer) {
+                // 等待DOM完全更新后再处理代码块
+                await tick();
+                await tick();
+                highlightCodeBlocks(messagesContainer);
+                await tick();
+                cleanupCodeBlocks(messagesContainer);
+                renderMathFormulas(messagesContainer);
+                setupBlockRefLinks(messagesContainer);
+            }
+        });
+    }
+
     // 处理粘贴事件
     async function handlePaste(event: ClipboardEvent) {
         const items = event.clipboardData?.items;
@@ -2759,7 +2782,7 @@
 
                 // 处理思源的代码块结构: div.hljs > div[contenteditable]
                 const siyuanCodeBlocks = element.querySelectorAll(
-                    'div.hljs > div[contenteditable="true"]'
+                    'pre > code:not([data-highlighted])'
                 );
                 siyuanCodeBlocks.forEach((block: HTMLElement) => {
                     // 检查是否已经高亮过（通过检查是否有 hljs 的高亮 class）
@@ -2787,6 +2810,7 @@
 
                         // 将高亮后的 HTML 设置到 contenteditable 元素中
                         block.innerHTML = highlighted.value;
+                        block.classList.add('hljs');
 
                         // 标记已处理，添加一个自定义属性
                         block.setAttribute('data-highlighted', 'true');
@@ -2800,16 +2824,36 @@
                     'pre > code:not([data-highlighted])'
                 );
                 standardCodeBlocks.forEach((block: HTMLElement) => {
-                    if (
-                        block.classList.contains('hljs') ||
-                        block.getAttribute('data-highlighted')
-                    ) {
+                    if (block.querySelector('.hljs-keyword, .hljs-string, .hljs-comment')) {
                         return;
                     }
-
                     try {
-                        hljs.highlightElement(block);
+                        // 尝试从 class 中获取 language
+                        let language = '';
+                        const codeClass = block.className || '';
+                        const match = codeClass.match(/(?:^|\s)language-([a-zA-Z0-9_-]+)/);
+                        if (match && match[1]) {
+                            language = match[1];
+                        }
+                        let highlighted;
+                        // 如果指定了语言且可识别，使用 hljs.highlight
+                        console.log(language);
+                        if (language) {
+                            const code = block.textContent || '';
+                            hljs.highlight(code, {
+                                language,
+                                ignoreIllegals: true,
+                            });
+                            block.innerHTML = highlighted.value;
+                            block.classList.add('hljs');
+                        } else {
+                            // 否则使用 highlightElement（自动检测）
+                            highlighted = hljs.highlightAuto(block);
+                            block.innerHTML = highlighted.value;
+                            block.classList.add('hljs');
+                        }
                         block.setAttribute('data-highlighted', 'true');
+                        if (language) block.setAttribute('data-language', language);
                     } catch (error) {
                         console.error('Highlight standard code block error:', error);
                     }
@@ -3062,13 +3106,15 @@
                     const pre = codeElement.parentElement;
                     if (!pre || pre.hasAttribute('data-lang-added')) return;
 
-                    // 从 class 中提取语言名称
-                    const classes = codeElement.className.split(' ');
-                    let language = '';
-                    for (const cls of classes) {
-                        if (cls.startsWith('language-')) {
-                            language = cls.replace('language-', '');
-                            break;
+                    // 尝试从 data-language 或 class 中提取语言名称
+                    let language = (codeElement.getAttribute('data-language') as string) || '';
+                    if (!language) {
+                        const classes = codeElement.className.split(' ');
+                        for (const cls of classes) {
+                            if (cls.startsWith('language-')) {
+                                language = cls.replace('language-', '');
+                                break;
+                            }
                         }
                     }
 
@@ -3175,25 +3221,6 @@
                 console.error('Setup block ref links error:', error);
             }
         });
-    }
-
-    // 监听消息变化，高亮代码块和渲染数学公式
-    $: {
-        if (messages.length > 0 || streamingMessage) {
-            tick().then(async () => {
-                if (messagesContainer) {
-                    // 先高亮代码块
-                    highlightCodeBlocks(messagesContainer);
-                    // 等待一个 tick 确保高亮完成
-                    await tick();
-                    // 然后添加工具栏（不会影响已有的高亮）
-                    cleanupCodeBlocks(messagesContainer);
-                    // 渲染数学公式和设置块引用链接
-                    renderMathFormulas(messagesContainer);
-                    setupBlockRefLinks(messagesContainer);
-                }
-            });
-        }
     }
 
     // 复制单条消息
@@ -5564,7 +5591,7 @@
                         <!-- 不渲染 tool 消息 -->
                     {:else}
                         <!-- 显示思考过程 -->
-                        {#if message.role === 'assistant' && message.thinking && !( message.multiModelResponses && message.multiModelResponses.length > 0)}
+                        {#if message.role === 'assistant' && message.thinking && !(message.multiModelResponses && message.multiModelResponses.length > 0)}
                             {@const thinkingIndex = messageIndex + msgIndex}
                             <div class="ai-message__thinking">
                                 <div
