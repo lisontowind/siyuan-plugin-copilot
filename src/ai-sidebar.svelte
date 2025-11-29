@@ -2804,13 +2804,14 @@
                         let highlighted;
                         if (language) {
                             highlighted = hljs.highlight(code, { language, ignoreIllegals: true });
+                            block.classList.add('hljs');
                         } else {
                             highlighted = hljs.highlightAuto(code);
+                            block.classList.add('hljs');
                         }
-
+                        block.classList.add('hljs');
                         // 将高亮后的 HTML 设置到 contenteditable 元素中
                         block.innerHTML = highlighted.value;
-                        block.classList.add('hljs');
 
                         // 标记已处理，添加一个自定义属性
                         block.setAttribute('data-highlighted', 'true');
@@ -2837,7 +2838,7 @@
                         }
                         let highlighted;
                         // 如果指定了语言且可识别，使用 hljs.highlight
-                        console.log(language);
+                        console.log(language)
                         if (language) {
                             const code = block.textContent || '';
                             hljs.highlight(code, {
@@ -3222,6 +3223,8 @@
             }
         });
     }
+
+
 
     // 复制单条消息
     function copyMessage(content: string | MessageContent[]) {
