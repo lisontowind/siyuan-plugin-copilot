@@ -532,7 +532,7 @@
                             />
                         </div>
                         <div class="model-config-item">
-                            <span>{t('models.customBody')} (JSON)</span>
+                            <span>{t('models.customBody')} </span>
                             <textarea
                                 class="b3-text-field"
                                 style="height: 60px; resize: vertical;"
