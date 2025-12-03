@@ -148,14 +148,14 @@ function getLowerBaseModelName(modelId: string, separator: string = '/'): string
  */
 function findClaudeTokenLimit(modelId: string): TokenLimitConfig {
     const baseModelId = getLowerBaseModelName(modelId, '/');
-    
+
     // 按优先级匹配
     for (const [key, config] of Object.entries(CLAUDE_TOKEN_LIMITS)) {
         if (key !== 'default' && baseModelId.includes(key)) {
             return config;
         }
     }
-    
+
     return CLAUDE_TOKEN_LIMITS['default'];
 }
 
@@ -201,17 +201,17 @@ export function calculateClaudeThinkingBudget(
     const DEFAULT_MAX_TOKENS = 8192;
     const tokenLimit = findClaudeTokenLimit(modelId);
     const effortRatio = EFFORT_RATIO[reasoningEffort];
-    
+
     // 计算基础预算
     let budgetTokens = Math.floor(
         (tokenLimit.max - tokenLimit.min) * effortRatio + tokenLimit.min
     );
-    
+
     // 根据 maxTokens 限制调整
     budgetTokens = Math.floor(
         Math.max(1024, Math.min(budgetTokens, (maxTokens || DEFAULT_MAX_TOKENS) * effortRatio))
     );
-    
+
     return budgetTokens;
 }
 
@@ -490,7 +490,7 @@ async function chatOpenAIFormat(
     // 如果启用思考模式，添加相关参数
     if (options.enableThinking) {
         const reasoningEffort = options.reasoningEffort || 'medium';
-        
+
         // 检查是否是 Claude 模型（通过 OpenAI 兼容 API）
         if (isSupportedThinkingClaudeModel(options.model)) {
             // Claude 模型使用 thinking 参数

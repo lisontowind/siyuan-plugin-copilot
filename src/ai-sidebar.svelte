@@ -1228,11 +1228,16 @@
             return false;
         }
         // 检查是否是支持思考程度设置的模型（Gemini 或 Claude）
-        return isSupportedThinkingGeminiModel(currentModelId) || isSupportedThinkingClaudeModel(currentModelId);
+        return (
+            isSupportedThinkingGeminiModel(currentModelId) ||
+            isSupportedThinkingClaudeModel(currentModelId)
+        );
     })();
 
     // 当前模型是否是 Gemini 模型（用于决定是否显示"默认"选项）
-    $: isCurrentModelGemini = currentModelId ? isSupportedThinkingGeminiModel(currentModelId) : false;
+    $: isCurrentModelGemini = currentModelId
+        ? isSupportedThinkingGeminiModel(currentModelId)
+        : false;
 
     // 当前思考程度设置
     $: currentThinkingEffort = (() => {
@@ -7231,7 +7236,9 @@
                                 class="ai-sidebar__thinking-toggle b3-button b3-button--text"
                                 class:ai-sidebar__thinking-toggle--active={isThinkingModeEnabled}
                                 on:click={toggleThinkingMode}
-                                title={isThinkingModeEnabled ? t('thinking.enabled') : t('thinking.disabled')}
+                                title={isThinkingModeEnabled
+                                    ? t('thinking.enabled')
+                                    : t('thinking.disabled')}
                                 disabled={!currentProvider || !currentModelId}
                             >
                                 {t('thinking.toggle')}
