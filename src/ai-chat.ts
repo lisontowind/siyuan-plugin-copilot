@@ -646,9 +646,9 @@ async function handleStreamResponse(
                         // 检查是否有思考内容
                         // DeepSeek 使用 reasoning_content
                         // Gemini OpenAI 兼容模式使用 reasoning（或 thought/thinking）
-                        const reasoningContent = delta?.reasoning_content 
-                            || delta?.reasoning 
-                            || delta?.thought 
+                        const reasoningContent = delta?.reasoning_content
+                            || delta?.reasoning
+                            || delta?.thought
                             || delta?.thinking;
                         if (options.enableThinking && reasoningContent) {
                             isThinkingPhase = true;
