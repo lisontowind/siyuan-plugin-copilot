@@ -155,16 +155,18 @@
 
     // 拖拽开始
     function handleDragStart(event: DragEvent, index: number) {
+        event.stopPropagation();
         draggedIndex = index;
         if (event.dataTransfer) {
             event.dataTransfer.effectAllowed = 'move';
-            event.dataTransfer.setData('text/html', '');
+            event.dataTransfer.setData('application/multi-model-sort', 'true');
         }
     }
 
     // 拖拽经过（用于显示指示器）
     function handleDragOver(event: DragEvent, index: number) {
         event.preventDefault();
+        event.stopPropagation();
         if (event.dataTransfer) {
             event.dataTransfer.dropEffect = 'move';
         }
@@ -187,6 +189,7 @@
     // 拖拽进入（用于显示指示器）
     function handleDragEnter(event: DragEvent, index: number) {
         event.preventDefault();
+        event.stopPropagation();
         if (draggedIndex !== null && draggedIndex !== index) {
             dropIndicatorIndex = index;
         }
@@ -194,6 +197,7 @@
 
     // 拖拽离开（清除指示器）
     function handleDragLeave(event: DragEvent) {
+        event.stopPropagation();
         // 只有当鼠标真正离开容器时才清除指示器
         const relatedTarget = event.relatedTarget as HTMLElement;
         const currentTarget = event.currentTarget as HTMLElement;
@@ -206,6 +210,7 @@
     // 拖拽放置
     function handleDrop(event: DragEvent, dropIndex: number) {
         event.preventDefault();
+        event.stopPropagation();
         if (draggedIndex !== null) {
             let targetIndex = dropIndicatorIndex;
 

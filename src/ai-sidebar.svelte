@@ -4196,12 +4196,18 @@
 
     // 处理拖放
     function handleDragOver(event: DragEvent) {
+        if (event.dataTransfer.types.includes('application/multi-model-sort')) {
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         isDragOver = true;
     }
 
     function handleDragLeave(event: DragEvent) {
+        if (event.dataTransfer.types.includes('application/multi-model-sort')) {
+            return;
+        }
         event.preventDefault();
         event.stopPropagation();
         // 只在真正离开容器时才设置为false
@@ -4217,6 +4223,9 @@
     }
 
     async function handleDrop(event: DragEvent) {
+        if (event.dataTransfer.types.includes('application/multi-model-sort')) {
+            return;
+        }
         event.preventDefault();
         isDragOver = false;
 
