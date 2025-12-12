@@ -245,6 +245,9 @@
             "unpin": "Unpin",
             "pinned": "Session pinned",
             "unpinned": "Session unpinned",
+            "rename": "Rename",
+            "renameSuccess": "Rename successful",
+            "titlePlaceholder": "Enter session title",
             "export": "Export to File",
             "exportSuccess": "Session exported",
             "saveToNote": {
@@ -412,6 +415,7 @@
         "loading": "Loading...",
         "save": "Save",
         "cancel": "Cancel",
+        "confirm": "Confirm",
         "delete": "Delete",
         "edit": "Edit",
         "add": "Add",

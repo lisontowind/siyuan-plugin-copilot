@@ -34,6 +34,11 @@
     let isMultiSelectMode = false; // 是否处于多选模式
     let selectedSessionIds: Set<string> = new Set(); // 选中的会话ID集合
 
+    // 重命名相关状态
+    let isRenameDialogOpen = false; // 重命名对话框是否打开
+    let renameSessionTitle = ''; // 重命名输入框的值
+    let renameSession: ChatSession | null = null; // 要重命名的会话
+
     function formatDate(timestamp: number): string {
         const date = new Date(timestamp);
         const now = new Date();
@@ -291,6 +296,44 @@
     } else {
         document.removeEventListener('click', handleGlobalClick);
     }
+
+    // 打开重命名对话框
+    function openRenameDialog() {
+        if (!contextMenuSession) return;
+
+        renameSession = contextMenuSession;
+        renameSessionTitle = contextMenuSession.title;
+        isRenameDialogOpen = true;
+        closeContextMenu();
+    }
+
+    // 确认重命名
+    function confirmRename() {
+        if (!renameSession || !renameSessionTitle.trim()) {
+            pushMsg('会话标题不能为空');
+            return;
+        }
+
+        const session = sessions.find(s => s.id === renameSession.id);
+        if (session) {
+            session.title = renameSessionTitle.trim();
+            sessions = [...sessions];
+            dispatch('update', { sessions });
+            pushMsg(t('aiSidebar.session.renameSuccess') || '重命名成功');
+        }
+
+        isRenameDialogOpen = false;
+        renameSession = null;
+        renameSessionTitle = '';
+    }
+
+    // 取消重命名
+    function cancelRename() {
+        isRenameDialogOpen = false;
+        renameSession = null;
+        renameSessionTitle = '';
+    }
+
 </script>
 
 <div class="session-manager">
@@ -452,6 +495,18 @@
                 class="session-context-menu__item"
                 role="button"
                 tabindex="0"
+                on:click={openRenameDialog}
+                on:keydown={e => e.key === 'Enter' && openRenameDialog()}
+            >
+                <svg class="b3-menu__icon">
+                    <use xlink:href="#iconEdit"></use>
+                </svg>
+                <span>{t('aiSidebar.session.rename') || '重命名'}</span>
+            </div>
+            <div
+                class="session-context-menu__item"
+                role="button"
+                tabindex="0"
                 on:click={exportSessionToFile}
                 on:keydown={e => e.key === 'Enter' && exportSessionToFile()}
             >
@@ -459,6 +514,42 @@
                     <use xlink:href="#iconDownload"></use>
                 </svg>
                 <span>{t('aiSidebar.session.export')}</span>
+            </div>
+        </div>
+    {/if}
+
+    <!-- 重命名对话框 -->
+    {#if isRenameDialogOpen && renameSession}
+        <div class="session-rename-dialog-overlay" on:click={cancelRename}>
+            <div class="session-rename-dialog" on:click|stopPropagation>
+                <div class="session-rename-dialog__header">
+                    <h3>{t('aiSidebar.session.rename') || '重命名会话'}</h3>
+                    <button
+                        class="b3-button b3-button--text"
+                        on:click={cancelRename}
+                        title={t('common.cancel') || '取消'}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconClose"></use></svg>
+                    </button>
+                </div>
+                <div class="session-rename-dialog__body">
+                    <input
+                        type="text"
+                        class="b3-text-field"
+                        bind:value={renameSessionTitle}
+                        placeholder={t('aiSidebar.session.titlePlaceholder') || '请输入会话标题'}
+                        on:keydown={e => e.key === 'Enter' && confirmRename()}
+                        autofocus
+                    />
+                </div>
+                <div class="session-rename-dialog__footer">
+                    <button class="b3-button b3-button--text" on:click={cancelRename}>
+                        {t('common.cancel') || '取消'}
+                    </button>
+                    <button class="b3-button b3-button--primary" on:click={confirmRename}>
+                        {t('common.confirm') || '确定'}
+                    </button>
+                </div>
             </div>
         </div>
     {/if}
@@ -660,6 +751,87 @@
 
         span {
             flex: 1;
+        }
+    }
+
+    .session-rename-dialog-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+    }
+
+    .session-rename-dialog {
+        background: var(--b3-theme-background);
+        border: 1px solid var(--b3-border-color);
+        border-radius: 8px;
+        box-shadow: var(--b3-dialog-shadow);
+        width: 90%;
+        max-width: 400px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .session-rename-dialog__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border-bottom: 1px solid var(--b3-border-color);
+
+        h3 {
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--b3-theme-on-background);
+        }
+
+        button {
+            padding: 4px;
+        }
+    }
+
+    .session-rename-dialog__body {
+        padding: 20px 16px;
+
+        .b3-text-field {
+            width: 100%;
+            padding: 8px 12px;
+            font-size: 14px;
+            border: 1px solid var(--b3-border-color);
+            border-radius: 4px;
+            background: var(--b3-theme-surface);
+            color: var(--b3-theme-on-background);
+            transition: border-color 0.2s;
+
+            &:focus {
+                outline: none;
+                border-color: var(--b3-theme-primary);
+            }
+
+            &::placeholder {
+                color: var(--b3-theme-on-surface-light);
+            }
+        }
+    }
+
+    .session-rename-dialog__footer {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 12px 16px;
+        border-top: 1px solid var(--b3-border-color);
+
+        button {
+            padding: 6px 16px;
+            font-size: 13px;
         }
     }
 </style>

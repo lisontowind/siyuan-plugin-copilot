@@ -244,6 +244,9 @@
             "unpin": "取消钉住",
             "pinned": "已钉住会话",
             "unpinned": "已取消钉住",
+            "rename": "重命名",
+            "renameSuccess": "重命名成功",
+            "titlePlaceholder": "请输入会话标题",
             "export": "导出到文件",
             "exportSuccess": "会话已导出",
             "saveToNote": {
@@ -411,6 +414,7 @@
         "loading": "加载中...",
         "save": "保存",
         "cancel": "取消",
+        "confirm": "确定",
         "delete": "删除",
         "edit": "编辑",
         "add": "添加",
