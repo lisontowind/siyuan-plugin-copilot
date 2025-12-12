@@ -3300,81 +3300,76 @@
         }
     }
 
-    // 初始化 highlight.js
-    async function initHljs() {
-        if ((window as any).hljs) return true;
+    // 初始化 highlight.js (使用用户提供的实现)
+    export const initHljs = async () => {
+        if ((window as any).hljs) return;
 
-        try {
-            // 使用思源的 CDN 加载 highlight.js
-            const cdn = Constants.PROTYLE_CDN;
+        //https://github.com/siyuan-note/siyuan/blob/master/app/src/util/assets.ts#L309
+        const setCodeTheme = (cdn = Constants.PROTYLE_CDN) => {
+            const protyleHljsStyle = document.getElementById('protyleHljsStyle') as HTMLLinkElement;
+            let css;
+            if ((window as any).siyuan.config.appearance.mode === 0) {
+                css = (window as any).siyuan.config.appearance.codeBlockThemeLight;
+                if (!Constants.SIYUAN_CONFIG_APPEARANCE_LIGHT_CODE.includes(css)) {
+                    css = 'default';
+                }
+            } else {
+                css = (window as any).siyuan.config.appearance.codeBlockThemeDark;
+                if (!Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE.includes(css)) {
+                    css = 'github-dark';
+                }
+            }
+            const href = `${cdn}/js/highlight.js/styles/${css}.min.css`;
+            if (!protyleHljsStyle) {
+                addStyle(href, 'protyleHljsStyle');
+            } else if (!protyleHljsStyle.href.includes(href)) {
+                protyleHljsStyle.remove();
+                addStyle(href, 'protyleHljsStyle');
+            }
+        };
 
-            // 设置代码主题样式
-            const setCodeTheme = (cdnUrl = cdn) => {
-                const protyleHljsStyle = document.getElementById(
-                    'protyleHljsStyle'
-                ) as HTMLLinkElement;
-                let css;
-                if ((window as any).siyuan.config.appearance.mode === 0) {
-                    css = (window as any).siyuan.config.appearance.codeBlockThemeLight;
-                    if (!Constants.SIYUAN_CONFIG_APPEARANCE_LIGHT_CODE.includes(css)) {
-                        css = 'default';
-                    }
-                } else {
-                    css = (window as any).siyuan.config.appearance.codeBlockThemeDark;
-                    if (!Constants.SIYUAN_CONFIG_APPEARANCE_DARK_CODE.includes(css)) {
-                        css = 'github-dark';
-                    }
+        const cdn = Constants.PROTYLE_CDN;
+        setCodeTheme(cdn);
+        await addScript(`${cdn}/js/highlight.js/highlight.min.js`, 'protyleHljsScript');
+        await addScript(`${cdn}/js/highlight.js/third-languages.js`, 'protyleHljsThirdScript');
+        return (window as any).hljs !== undefined && (window as any).hljs !== null;
+    };
+
+    // 辅助：添加样式链接
+    const addStyle = (href: string, id: string) => {
+        if (document.getElementById(id)) return;
+        const link = document.createElement('link');
+        link.id = id;
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+    };
+
+    // https://github.com/siyuan-note/siyuan/blob/master/app/src/protyle/util/addScript.ts
+    export const addScript = (path: string, id: string) => {
+        return new Promise((resolve) => {
+            if (document.getElementById(id)) {
+                // 脚本加载后再次调用直接返回
+                resolve(false);
+                return false;
+            }
+            const scriptElement = document.createElement('script');
+            scriptElement.src = path;
+            scriptElement.async = true;
+            // 循环调用时 Chrome 不会重复请求 js
+            document.head.appendChild(scriptElement);
+            scriptElement.onload = () => {
+                if (document.getElementById(id)) {
+                    // 循环调用需清除 DOM 中的 script 标签
+                    scriptElement.remove();
+                    resolve(false);
+                    return false;
                 }
-                const href = `${cdnUrl}/js/highlight.js/styles/${css}.min.css`;
-                if (!protyleHljsStyle) {
-                    const link = document.createElement('link');
-                    link.id = 'protyleHljsStyle';
-                    link.rel = 'stylesheet';
-                    link.href = href;
-                    document.head.appendChild(link);
-                } else if (!protyleHljsStyle.href.includes(href)) {
-                    protyleHljsStyle.remove();
-                    const link = document.createElement('link');
-                    link.id = 'protyleHljsStyle';
-                    link.rel = 'stylesheet';
-                    link.href = href;
-                    document.head.appendChild(link);
-                }
+                scriptElement.id = id;
+                resolve(true);
             };
-
-            setCodeTheme(cdn);
-
-            // 添加 highlight.js 主脚本
-            if (!document.getElementById('protyleHljsScript')) {
-                await new Promise<void>((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.id = 'protyleHljsScript';
-                    script.src = `${cdn}/js/highlight.js/highlight.min.js`;
-                    script.onload = () => resolve();
-                    script.onerror = () => reject(new Error('Failed to load highlight.js'));
-                    document.head.appendChild(script);
-                });
-            }
-
-            // 添加 highlight.js 第三方语言脚本
-            if (!document.getElementById('protyleHljsThirdScript')) {
-                await new Promise<void>((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.id = 'protyleHljsThirdScript';
-                    script.src = `${cdn}/js/highlight.js/third-languages.js`;
-                    script.onload = () => resolve();
-                    script.onerror = () =>
-                        reject(new Error('Failed to load highlight.js third languages'));
-                    document.head.appendChild(script);
-                });
-            }
-
-            return (window as any).hljs !== undefined && (window as any).hljs !== null;
-        } catch (error) {
-            console.error('Init highlight.js error:', error);
-            return false;
-        }
-    }
+        });
+    };
 
     // 渲染单个数学公式块
     function renderMathBlock(element: HTMLElement) {
