@@ -82,6 +82,7 @@
     let contextMenuY = 0;
     let contextMenuMessageIndex: number | null = null;
     let contextMenuMessageType: 'user' | 'assistant' | null = null;
+    let contextMenuIsMultiModel = false;
     // 选区相关（用于右键时判断是否对选中的文本进行复制）
     let selectionInMessage = false;
     let selectionHtml = '';
@@ -3958,7 +3959,8 @@
     function handleContextMenu(
         event: MouseEvent,
         messageIndex: number,
-        messageType: 'user' | 'assistant'
+        messageType: 'user' | 'assistant',
+        isMultiModel = false
     ) {
         event.preventDefault();
         event.stopPropagation();
@@ -3968,6 +3970,7 @@
         contextMenuY = event.clientY;
         contextMenuMessageIndex = messageIndex;
         contextMenuMessageType = messageType;
+        contextMenuIsMultiModel = !!isMultiModel;
         // 判断当前是否有选区，且选区位于当前消息元素内
         try {
             const sel = window.getSelection();
@@ -4036,10 +4039,23 @@
 
         switch (action) {
             case 'copy': {
-                // 旧行为：复制整条消息文本
-                const message = messages[messageIndex];
-                if (message) {
-                    copyMessage(message.content);
+                // 旧行为：复制整条消息文本（或多模型整条响应）
+                if (contextMenuIsMultiModel) {
+                    try {
+                        const el = document.elementFromPoint(contextMenuX, contextMenuY) as HTMLElement | null;
+                        const container = el?.closest('.ai-sidebar__multi-model-card-content, .ai-sidebar__multi-model-tab-panel-content') as HTMLElement | null;
+                        const text = container ? container.innerText : (multiModelResponses[messageIndex]?.content || '');
+                        await navigator.clipboard.writeText(text);
+                        pushMsg(t('aiSidebar.success.copySuccess'));
+                    } catch (err) {
+                        console.error('Copy multi-model response failed:', err);
+                        pushErrMsg(t('aiSidebar.errors.copyFailed'));
+                    }
+                } else {
+                    const message = messages[messageIndex];
+                    if (message) {
+                        copyMessage(message.content);
+                    }
                 }
                 break;
             }
@@ -4088,7 +4104,47 @@
                         pushErrMsg(t('aiSidebar.errors.copyFailed'));
                     }
                 } else {
-                    pushErrMsg(t('aiSidebar.errors.noSelection'));
+                    // 如果是多模型区域且没有选区，复制整个多模型响应内容
+                    if (contextMenuIsMultiModel) {
+                        try {
+                            const el = document.elementFromPoint(contextMenuX, contextMenuY) as HTMLElement | null;
+                            const container = el?.closest('.ai-sidebar__multi-model-card-content, .ai-sidebar__multi-model-tab-panel-content') as HTMLElement | null;
+                            const html = container ? container.innerHTML : (multiModelResponses[messageIndex]?.content || '');
+                            const text = container ? container.innerText : (multiModelResponses[messageIndex]?.content || '');
+
+                            if (action === 'copy_md') {
+                                if (window.Lute) {
+                                    const lute = window.Lute.New();
+                                    const md = lute.HTML2Md(html || text);
+                                    await navigator.clipboard.writeText(md);
+                                } else {
+                                    await navigator.clipboard.writeText(text);
+                                }
+                                pushMsg(t('aiSidebar.success.copySuccess'));
+                            } else if (action === 'copy_plain') {
+                                await navigator.clipboard.writeText(text);
+                                pushMsg(t('aiSidebar.success.copySuccess'));
+                            } else if (action === 'copy_html') {
+                                if (navigator.clipboard && (navigator.clipboard as any).write) {
+                                    const blobPlain = new Blob([text], { type: 'text/plain' });
+                                    const blobHtml = new Blob([html || text], { type: 'text/html' });
+                                    const item: any = new ClipboardItem({
+                                        'text/plain': blobPlain,
+                                        'text/html': blobHtml,
+                                    });
+                                    await (navigator.clipboard as any).write([item]);
+                                } else {
+                                    await navigator.clipboard.writeText(text);
+                                }
+                                pushMsg(t('aiSidebar.success.copySuccess'));
+                            }
+                        } catch (err) {
+                            console.error('Copy multi-model content failed:', err);
+                            pushErrMsg(t('aiSidebar.errors.copyFailed'));
+                        }
+                    } else {
+                        pushErrMsg(t('aiSidebar.errors.noSelection'));
+                    }
                 }
 
                 // 清理选区状态
@@ -7179,10 +7235,10 @@
 
                                 <div
                                     class="ai-sidebar__multi-model-card-content b3-typography"
-                                    style={messageFontSize
-                                        ? `font-size: ${messageFontSize}px;`
-                                        : ''}
-                                    on:contextmenu={e => handleContextMenu(e, -1, 'assistant')}
+                                        style={messageFontSize
+                                            ? `font-size: ${messageFontSize}px;`
+                                            : ''}
+                                        on:contextmenu={e => handleContextMenu(e, index, 'assistant', true)}
                                 >
                                     {#if response.error}
                                         <div class="ai-sidebar__multi-model-card-error">
@@ -7339,10 +7395,10 @@
 
                                     <div
                                         class="ai-sidebar__multi-model-tab-panel-content b3-typography"
-                                        style={messageFontSize
-                                            ? `font-size: ${messageFontSize}px;`
-                                            : ''}
-                                        on:contextmenu={e => handleContextMenu(e, -1, 'assistant')}
+                                            style={messageFontSize
+                                                ? `font-size: ${messageFontSize}px;`
+                                                : ''}
+                                            on:contextmenu={e => handleContextMenu(e, selectedTabIndex, 'assistant', true)}
                                     >
                                         {#if response.error}
                                             <div class="ai-sidebar__multi-model-tab-panel-error">
@@ -8017,70 +8073,119 @@
             class="ai-sidebar__context-menu"
             style="left: {contextMenuX}px; top: {contextMenuY}px;"
         >
-            {#if selectionInMessage}
-                <button
-                    class="ai-sidebar__context-menu-item"
-                    on:click={() => handleContextMenuAction('copy_md')}
-                >
-                    <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
-                    <span>复制（Markdown，默认）</span>
-                </button>
-                <button
-                    class="ai-sidebar__context-menu-item"
-                    on:click={() => handleContextMenuAction('copy_plain')}
-                >
-                    <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
-                    <span>复制（纯文本）</span>
-                </button>
-                <button
-                    class="ai-sidebar__context-menu-item"
-                    on:click={() => handleContextMenuAction('copy_html')}
-                >
-                    <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
-                    <span>复制（富文本）</span>
-                </button>
+            {#if contextMenuIsMultiModel}
+                {#if selectionInMessage}
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_md')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（Markdown，默认）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_plain')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（纯文本）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_html')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（富文本）</span>
+                    </button>
+                {:else}
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_md')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（Markdown，默认）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_plain')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（纯文本）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_html')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（富文本）</span>
+                    </button>
+                {/if}
             {:else}
+                {#if selectionInMessage}
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_md')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（Markdown，默认）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_plain')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（纯文本）</span>
+                    </button>
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy_html')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>复制（富文本）</span>
+                    </button>
+                {:else}
+                    <button
+                        class="ai-sidebar__context-menu-item"
+                        on:click={() => handleContextMenuAction('copy')}
+                    >
+                        <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
+                        <span>{t('aiSidebar.actions.copyMessage')}</span>
+                    </button>
+                {/if}
+
                 <button
                     class="ai-sidebar__context-menu-item"
-                    on:click={() => handleContextMenuAction('copy')}
+                    on:click={() => handleContextMenuAction('edit')}
                 >
-                    <svg class="b3-button__icon"><use xlink:href="#iconCopy"></use></svg>
-                    <span>{t('aiSidebar.actions.copyMessage')}</span>
+                    <svg class="b3-button__icon"><use xlink:href="#iconEdit"></use></svg>
+                    <span>{t('aiSidebar.actions.editMessage')}</span>
+                </button>
+                <button
+                    class="ai-sidebar__context-menu-item"
+                    on:click={() => handleContextMenuAction('delete')}
+                >
+                    <svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg>
+                    <span>{t('aiSidebar.actions.deleteMessage')}</span>
+                </button>
+                <div class="ai-sidebar__context-menu-divider"></div>
+                <button
+                    class="ai-sidebar__context-menu-item"
+                    on:click={() => handleContextMenuAction('save')}
+                >
+                    <svg class="b3-button__icon"><use xlink:href="#iconDownload"></use></svg>
+                    <span>{t('aiSidebar.actions.saveToNote')}</span>
+                </button>
+                <button
+                    class="ai-sidebar__context-menu-item"
+                    on:click={() => handleContextMenuAction('regenerate')}
+                >
+                    <svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg>
+                    <span>
+                        {contextMenuMessageType === 'user'
+                            ? t('aiSidebar.actions.resend')
+                            : t('aiSidebar.actions.regenerate')}
+                    </span>
                 </button>
             {/if}
-            <button
-                class="ai-sidebar__context-menu-item"
-                on:click={() => handleContextMenuAction('edit')}
-            >
-                <svg class="b3-button__icon"><use xlink:href="#iconEdit"></use></svg>
-                <span>{t('aiSidebar.actions.editMessage')}</span>
-            </button>
-            <button
-                class="ai-sidebar__context-menu-item"
-                on:click={() => handleContextMenuAction('delete')}
-            >
-                <svg class="b3-button__icon"><use xlink:href="#iconTrashcan"></use></svg>
-                <span>{t('aiSidebar.actions.deleteMessage')}</span>
-            </button>
-            <div class="ai-sidebar__context-menu-divider"></div>
-            <button
-                class="ai-sidebar__context-menu-item"
-                on:click={() => handleContextMenuAction('save')}
-            >
-                <svg class="b3-button__icon"><use xlink:href="#iconDownload"></use></svg>
-                <span>{t('aiSidebar.actions.saveToNote')}</span>
-            </button>
-            <button
-                class="ai-sidebar__context-menu-item"
-                on:click={() => handleContextMenuAction('regenerate')}
-            >
-                <svg class="b3-button__icon"><use xlink:href="#iconRefresh"></use></svg>
-                <span>
-                    {contextMenuMessageType === 'user'
-                        ? t('aiSidebar.actions.resend')
-                        : t('aiSidebar.actions.regenerate')}
-                </span>
-            </button>
         </div>
     {/if}
 
