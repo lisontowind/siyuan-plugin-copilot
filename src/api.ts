@@ -623,6 +623,215 @@ export async function forwardProxy(
 }
 
 
+// **************************************** AttributeView (Database) ****************************************
+
+/**
+ * 搜索数据库
+ * @param keyword 搜索关键词
+ * @param avID 可选的数据库ID，用于精确搜索
+ */
+export async function searchAttributeView(keyword: string, avID?: string): Promise<any> {
+    let data: any = {
+        keyword: keyword
+    };
+    if (avID) {
+        data.avID = avID;
+    }
+    let url = '/api/av/searchAttributeView';
+    return request(url, data);
+}
+
+/**
+ * 获取数据库的列信息
+ * @param avID 数据库ID
+ */
+export async function getAttributeViewKeysByAvID(avID: string): Promise<any> {
+    let data = {
+        avID: avID
+    };
+    let url = '/api/av/getAttributeViewKeysByAvID';
+    return request(url, data);
+}
+
+/**
+ * 渲染数据库视图内容
+ * @param id 数据库ID
+ * @param viewID 视图ID
+ * @param pageSize 每页数量，默认9999999
+ * @param page 页码，默认1
+ */
+export async function renderAttributeView(id: string, viewID: string, pageSize: number = 9999999, page: number = 1): Promise<any> {
+    let data = {
+        id: id,
+        viewID: viewID,
+        pageSize: pageSize,
+        page: page
+    };
+    let url = '/api/av/renderAttributeView';
+    return request(url, data);
+}
+
+/**
+ * 添加数据库非绑定块和属性值
+ * @param avID 数据库ID
+ * @param blocksValues 二维数组，每个元素是一行的数据
+ */
+export async function appendAttributeViewDetachedBlocksWithValues(avID: string, blocksValues: any[][]): Promise<any> {
+    let data = {
+        avID: avID,
+        blocksValues: blocksValues
+    };
+    let url = '/api/av/appendAttributeViewDetachedBlocksWithValues';
+    return request(url, data);
+}
+
+/**
+ * 添加数据库绑定块
+ * @param avID 数据库ID
+ * @param srcs 源块数组，包含id和isDetached字段
+ */
+export async function addAttributeViewBlocks(avID: string, srcs: Array<{ id: string, isDetached: boolean, itemID?: string }>): Promise<any> {
+    let data = {
+        avID: avID,
+        srcs: srcs
+    };
+    let url = '/api/av/addAttributeViewBlocks';
+    return request(url, data);
+}
+
+/**
+ * 设置数据库块属性
+ * @param avID 数据库ID
+ * @param keyID 列ID
+ * @param itemID 行ID (v3.3.1+使用itemID，之前版本使用rowID)
+ * @param value 属性值对象
+ */
+export async function setAttributeViewBlockAttr(avID: string, keyID: string, itemID: string, value: any): Promise<any> {
+    let data = {
+        avID: avID,
+        keyID: keyID,
+        itemID: itemID,
+        value: value
+    };
+    let url = '/api/av/setAttributeViewBlockAttr';
+    return request(url, data);
+}
+
+/**
+ * 批量设置数据库块属性
+ * @param avID 数据库ID
+ * @param values 属性值数组
+ */
+export async function batchSetAttributeViewBlockAttrs(avID: string, values: Array<{ keyID: string, rowID: string, value: any }>): Promise<any> {
+    let data = {
+        avID: avID,
+        values: values
+    };
+    let url = '/api/av/batchSetAttributeViewBlockAttrs';
+    return request(url, data);
+}
+
+/**
+ * 查询哪些数据库包含了指定块
+ * @param id 块ID
+ */
+export async function getAttributeViewKeys(id: string): Promise<any> {
+    let data = {
+        id: id
+    };
+    let url = '/api/av/getAttributeViewKeys';
+    return request(url, data);
+}
+
+/**
+ * 根据ItemID获取绑定块ID
+ * @param avID 数据库ID
+ * @param itemIDs ItemID数组
+ */
+export async function getAttributeViewBoundBlockIDsByItemIDs(avID: string, itemIDs: string[]): Promise<any> {
+    let data = {
+        avID: avID,
+        itemIDs: itemIDs
+    };
+    let url = '/api/av/getAttributeViewBoundBlockIDsByItemIDs';
+    return request(url, data);
+}
+
+/**
+ * 根据绑定块ID获取ItemID
+ * @param avID 数据库ID
+ * @param blockIDs 块ID数组
+ */
+export async function getAttributeViewItemIDsByBoundIDs(avID: string, blockIDs: string[]): Promise<any> {
+    let data = {
+        avID: avID,
+        blockIDs: blockIDs
+    };
+    let url = '/api/av/getAttributeViewItemIDsByBoundIDs';
+    return request(url, data);
+}
+
+/**
+ * 添加数据库列
+ * @param avID 数据库ID
+ * @param keyName 列名称
+ * @param keyType 列类型
+ * @param previousKeyID 前一列ID，用于指定新列的位置（必需）
+ * @param keyID 可选的列ID，如果不提供则自动生成
+ * @param keyIcon 列图标，默认为空字符串
+ */
+export async function addAttributeViewKey(
+    avID: string,
+    keyName: string,
+    keyType: string,
+    previousKeyID: string,
+    keyID?: string,
+    keyIcon: string = ""
+): Promise<any> {
+    // 如果没有指定 keyID，自动生成一个
+    const finalKeyID = keyID || window.Lute.NewNodeID();
+
+    let data: any = {
+        avID: avID,
+        keyID: finalKeyID,
+        keyName: keyName,
+        keyType: keyType,
+        keyIcon: keyIcon,
+        previousKeyID: previousKeyID
+    };
+
+    let url = '/api/av/addAttributeViewKey';
+    return request(url, data);
+}
+
+/**
+ * 删除数据库列
+ * @param avID 数据库ID
+ * @param keyID 列ID
+ */
+export async function removeAttributeViewKey(avID: string, keyID: string): Promise<any> {
+    let data = {
+        avID: avID,
+        keyID: keyID
+    };
+    let url = '/api/av/removeAttributeViewKey';
+    return request(url, data);
+}
+
+/**
+ * 删除数据库行
+ * @param avID 数据库ID
+ * @param srcIDs 要删除的行ID数组
+ */
+export async function removeAttributeViewBlocks(avID: string, srcIDs: string[]): Promise<any> {
+    let data = {
+        avID: avID,
+        srcIDs: srcIDs
+    };
+    let url = '/api/av/removeAttributeViewBlocks';
+    return request(url, data);
+}
+
 // **************************************** System ****************************************
 
 export async function bootProgress(): Promise<IResBootProgress> {

@@ -30,6 +30,7 @@
             name: t('tools.category.siyuan'),
             tools: [
                 'siyuan_sql_query',
+                'siyuan_database',
                 'siyuan_get_block_content',
                 'siyuan_get_block_attrs',
                 'siyuan_set_block_attrs',

@@ -509,6 +509,9 @@
         "siyuan_sql_query": {
             "name": "SQL Query"
         },
+        "siyuan_database": {
+            "name": "Database Operations"
+        },
         "siyuan_insert_block": {
             "name": "Insert Block"
         },

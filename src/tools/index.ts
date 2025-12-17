@@ -22,6 +22,19 @@ import {
     setBlockAttrs,
     getNotebookConf,
     listDocsByPath,
+    searchAttributeView,
+    getAttributeViewKeysByAvID,
+    renderAttributeView,
+    appendAttributeViewDetachedBlocksWithValues,
+    addAttributeViewBlocks,
+    setAttributeViewBlockAttr,
+    batchSetAttributeViewBlockAttrs,
+    getAttributeViewKeys,
+    getAttributeViewBoundBlockIDsByItemIDs,
+    getAttributeViewItemIDsByBoundIDs,
+    addAttributeViewKey,
+    removeAttributeViewKey,
+    removeAttributeViewBlocks,
 } from '../api';
 import { getActiveEditor } from 'siyuan';
 
@@ -796,6 +809,437 @@ siyuan_move_documents({
             },
         },
     },
+    // 数据库工具
+    {
+        type: 'function',
+        function: {
+            name: 'siyuan_database',
+            description: `思源笔记数据库(AttributeView)操作工具。数据库由多个API组合使用，此工具整合了所有数据库相关操作。
+
+## 何时使用
+- 需要搜索、查询或操作数据库
+- 向数据库添加行或设置属性
+- 获取数据库结构和内容信息
+
+## 主要操作类型
+
+### 1. searchDatabase - 搜索数据库
+搜索数据库，可以通过关键词查找数据库。
+
+**参数:**
+- keyword: 搜索关键词
+- avID: (可选)数据库ID，用于精确搜索
+
+**返回:** 包含数据库ID、名称、视图信息等
+
+**示例:**
+\`\`\`json
+{
+  "operation": "searchDatabase",
+  "keyword": "示例数据库",
+  "avID": "20230804163730-1olpfp2"
+}
+\`\`\`
+
+### 2. getColumns - 获取数据库列信息
+获取数据库有几列，每列的id和类型是什么。
+
+**参数:**
+- avID: 数据库ID
+
+**返回:** 列信息数组，包含id、name、type等
+
+**示例:**
+\`\`\`json
+{
+  "operation": "getColumns",
+  "avID": "20241207205647-baw0ri8"
+}
+\`\`\`
+
+### 3. renderDatabase - 获取数据库内容
+渲染并获取数据库的完整内容，包括所有行和列的数据。
+
+**参数:**
+- avID: 数据库ID
+- viewID: 视图ID
+- pageSize: (可选)每页数量，默认9999999
+- page: (可选)页码，默认1
+
+**返回:** 完整的数据库视图数据
+
+**示例:**
+\`\`\`json
+{
+  "operation": "renderDatabase",
+  "avID": "20241017094451-2urncs9",
+  "viewID": "20241017094451-91wdu3a",
+  "pageSize": 9999999,
+  "page": 1
+}
+\`\`\`
+
+### 4. addDetachedRows - 添加非绑定行
+向数据库添加非绑定的块和属性值。
+
+**参数:**
+- avID: 数据库ID
+- blocksValues: 二维数组，每个元素是一行的数据
+  - keyID: 列ID
+  - block/text/mSelect/number: 根据列类型设置值
+
+**示例:**
+\`\`\`json
+{
+  "operation": "addDetachedRows",
+  "avID": "20241017094451-2urncs9",
+  "blocksValues": [
+    [
+      {
+        "keyID": "20241017094451-jwfegvp",
+        "block": { "content": "Test block" }
+      },
+      {
+        "keyID": "20241017094451-fu1pv7s",
+        "mSelect": [{"content": "Fiction5", "color": "3"}]
+      },
+      {
+        "keyID": "20241017095436-2wlgb7o",
+        "number": { "content": 1234 }
+      }
+    ]
+  ]
+}
+\`\`\`
+
+### 5. addBoundBlocks - 添加绑定块
+向数据库添加绑定的文档块。
+
+**参数:**
+- avID: 数据库ID
+- blockIDs: 要绑定的块ID数组
+- itemIDs: (可选)指定itemID数组，与blockIDs一一对应
+
+**示例:**
+\`\`\`json
+{
+  "operation": "addBoundBlocks",
+  "avID": "20241017094451-2urncs9",
+  "blockIDs": ["20240107212802-727hsjv"],
+  "itemIDs": ["20240107212802-727hsjv"]
+}
+\`\`\`
+
+### 6. setAttribute - 设置单个属性
+设置数据库中某个单元格的属性值。
+
+**参数:**
+- avID: 数据库ID
+- keyID: 列ID
+- itemID: 行ID (v3.3.1+使用itemID)
+- valueType: 值类型 (text/number/select/mSelect等)
+- value: 属性值对象
+
+**示例:**
+\`\`\`json
+{
+  "operation": "setAttribute",
+  "avID": "20241017094451-2urncs9",
+  "keyID": "20241102151935-gypad0k",
+  "itemID": "20251217205758-el6y4i3",
+  "valueType": "text",
+  "value": {
+    "text": { "content": "示例文本" }
+  }
+}
+\`\`\`
+
+### 7. batchSetAttributes - 批量设置属性
+批量设置多个单元格的属性值。
+
+**参数:**
+- avID: 数据库ID
+- values: 属性值数组
+  - keyID: 列ID
+  - rowID: 行ID
+  - value: 属性值对象
+
+**示例:**
+\`\`\`json
+{
+  "operation": "batchSetAttributes",
+  "avID": "20250716235026-51p7441",
+  "values": [
+    {
+      "keyID": "20250716235026-njmx362",
+      "rowID": "20250716235124-6qqlnpw",
+      "value": { "block": { "content": "Test" } }
+    },
+    {
+      "keyID": "20250716235026-a0v1j35",
+      "rowID": "20250716235124-6qqlnpw",
+      "value": { "number": { "content": 111 } }
+    }
+  ]
+}
+\`\`\`
+
+### 8. getDatabasesForBlock - 查询块所在的数据库
+查询哪些数据库包含了指定的块。
+
+**参数:**
+- blockID: 块ID
+
+**返回:** 包含该块的所有数据库信息
+
+**示例:**
+\`\`\`json
+{
+  "operation": "getDatabasesForBlock",
+  "blockID": "20220719202005-e3bn8ks"
+}
+\`\`\`
+
+### 9. getItemIDsByBlockIDs - 根据块ID获取ItemID
+根据绑定块ID获取对应的ItemID (v3.3.1+)。
+
+**参数:**
+- avID: 数据库ID
+- blockIDs: 块ID数组
+
+**示例:**
+\`\`\`json
+{
+  "operation": "getItemIDsByBlockIDs",
+  "avID": "20250829105223-fk06kth",
+  "blockIDs": ["20250829105224-mh7mtd2", "20250829105226-8o6pfqb"]
+}
+\`\`\`
+
+### 10. getBlockIDsByItemIDs - 根据ItemID获取块ID
+根据ItemID获取对应的绑定块ID (v3.3.1+)。
+
+**参数:**
+- avID: 数据库ID
+- itemIDs: ItemID数组
+
+**示例:**
+\`\`\`json
+{
+  "operation": "getBlockIDsByItemIDs",
+  "avID": "20250829105223-fk06kth",
+  "itemIDs": ["20250830173630-y0h4nrx", "20250830185837-4ww0kcq"]
+}
+\`\`\`
+
+### 11. addColumn - 添加数据库列
+向数据库添加新的列。
+
+**参数:**
+- avID: 数据库ID
+- keyName: 列名称
+- keyType: 列类型 (text/number/select/mSelect/block/date/url/email/phone等)
+- previousKeyID: 前一列的ID，用于指定新列的位置
+- keyIcon: 可选，列图标，默认为空字符串，unicode字符，比如2728，1f4cc
+
+**示例:**
+\`\`\`json
+{
+  "operation": "addColumn",
+  "avID": "20241017094451-2urncs9",
+  "keyName": "新列名",
+  "keyType": "text",
+  "keyIcon": "",
+  "previousKeyID": "20251217230203-rm3hnkr"
+}
+\`\`\`
+
+### 12. removeColumn - 删除数据库列
+删除数据库中的指定列。
+
+**参数:**
+- avID: 数据库ID
+- keyID: 要删除的列ID
+
+**示例:**
+\`\`\`json
+{
+  "operation": "removeColumn",
+  "avID": "20241017094451-2urncs9",
+  "keyID": "20241102151935-gypad0k"
+}
+\`\`\`
+
+### 13. removeRows - 删除数据库行
+删除数据库中的指定行。
+
+**参数:**
+- avID: 数据库ID
+- srcIDs: 要删除的行ID数组
+
+**示例:**
+\`\`\`json
+{
+  "operation": "removeRows",
+  "avID": "20241017094451-2urncs9",
+  "srcIDs": ["20251217205758-el6y4i3", "20220719202005-e3bn8ks"]
+}
+\`\`\`
+
+## 数据类型说明
+
+### 列类型 (type)
+- block: 块引用
+- text: 文本
+- number: 数字
+- select: 单选
+- mSelect: 多选
+- date: 日期
+- url: 链接
+- email: 邮箱
+- phone: 电话
+
+### 值格式示例
+
+**文本:**
+\`\`\`json
+{ "text": { "content": "文本内容" } }
+\`\`\`
+
+**数字:**
+\`\`\`json
+{ "number": { "content": 123 } }
+\`\`\`
+
+**单选/多选:**
+\`\`\`json
+{ "mSelect": [{ "content": "选项名", "color": "1" }] }
+\`\`\`
+
+**块引用:**
+\`\`\`json
+{ "block": { "content": "块标题" } }
+\`\`\`
+
+## 注意事项
+- 单选设置值也使用mSelect类型来设置
+- 添加绑定块时，isDetached设为false
+- 添加非绑定块时，使用addDetachedRows操作
+`,
+            parameters: {
+                type: 'object',
+                properties: {
+                    operation: {
+                        type: 'string',
+                        description: '操作类型',
+                        enum: [
+                            'searchDatabase',
+                            'getColumns',
+                            'renderDatabase',
+                            'addDetachedRows',
+                            'addBoundBlocks',
+                            'setAttribute',
+                            'batchSetAttributes',
+                            'getDatabasesForBlock',
+                            'getItemIDsByBlockIDs',
+                            'getBlockIDsByItemIDs',
+                            'addColumn',
+                            'removeColumn',
+                            'removeRows'
+                        ],
+                    },
+                    keyword: {
+                        type: 'string',
+                        description: '搜索关键词 (searchDatabase操作)',
+                    },
+                    avID: {
+                        type: 'string',
+                        description: '数据库ID',
+                    },
+                    viewID: {
+                        type: 'string',
+                        description: '视图ID (renderDatabase操作)',
+                    },
+                    pageSize: {
+                        type: 'number',
+                        description: '每页数量 (renderDatabase操作，默认9999999)',
+                    },
+                    page: {
+                        type: 'number',
+                        description: '页码 (renderDatabase操作，默认1)',
+                    },
+                    blocksValues: {
+                        type: 'array',
+                        description: '二维数组，每个元素是一行的数据 (addDetachedRows操作)',
+                    },
+                    blockIDs: {
+                        type: 'array',
+                        description: '块ID数组',
+                        items: {
+                            type: 'string',
+                        },
+                    },
+                    itemIDs: {
+                        type: 'array',
+                        description: 'ItemID数组',
+                        items: {
+                            type: 'string',
+                        },
+                    },
+                    keyID: {
+                        type: 'string',
+                        description: '列ID (setAttribute/removeColumn操作)',
+                    },
+                    itemID: {
+                        type: 'string',
+                        description: '行ID/ItemID (setAttribute操作)',
+                    },
+                    valueType: {
+                        type: 'string',
+                        description: '值类型 (setAttribute操作)',
+                        enum: ['text', 'number', 'select', 'mSelect', 'block', 'date', 'url', 'email', 'phone'],
+                    },
+                    value: {
+                        type: 'object',
+                        description: '属性值对象 (setAttribute操作)',
+                    },
+                    values: {
+                        type: 'array',
+                        description: '属性值数组 (batchSetAttributes操作)',
+                    },
+                    blockID: {
+                        type: 'string',
+                        description: '块ID (getDatabasesForBlock操作)',
+                    },
+                    keyName: {
+                        type: 'string',
+                        description: '列名称 (addColumn操作)',
+                    },
+                    keyType: {
+                        type: 'string',
+                        description: '列类型 (addColumn操作)',
+                        enum: ['text', 'number', 'select', 'mSelect', 'block', 'date', 'url', 'email', 'phone'],
+                    },
+                    keyIcon: {
+                        type: 'string',
+                        description: '列图标 (addColumn操作，可选，默认为空字符串)',
+                    },
+                    previousKeyID: {
+                        type: 'string',
+                        description: '前一列ID (addColumn操作，用于指定新列的位置)',
+                    },
+                    srcIDs: {
+                        type: 'array',
+                        description: '要删除的行ID数组 (removeRows操作)',
+                        items: {
+                            type: 'string',
+                        },
+                    },
+                },
+                required: ['operation'],
+            },
+        },
+    },
 ];
 
 // ==================== 工具实现 ====================
@@ -1177,6 +1621,159 @@ export async function siyuan_set_block_attrs(id: string, attrs: { [key: string]:
 }
 
 /**
+ * 数据库操作工具
+ */
+export async function siyuan_database(params: any): Promise<any> {
+    try {
+        const { operation } = params;
+
+        switch (operation) {
+            case 'searchDatabase': {
+                const { keyword, avID } = params;
+                if (!keyword) {
+                    throw new Error('keyword参数是必需的');
+                }
+                const result = await searchAttributeView(keyword, avID);
+                return result;
+            }
+
+            case 'getColumns': {
+                const { avID } = params;
+                if (!avID) {
+                    throw new Error('avID参数是必需的');
+                }
+                const result = await getAttributeViewKeysByAvID(avID);
+                return result;
+            }
+
+            case 'renderDatabase': {
+                const { avID, viewID, pageSize, page } = params;
+                if (!avID || !viewID) {
+                    throw new Error('avID和viewID参数是必需的');
+                }
+                const result = await renderAttributeView(
+                    avID,
+                    viewID,
+                    pageSize || 9999999,
+                    page || 1
+                );
+                return result;
+            }
+
+            case 'addDetachedRows': {
+                const { avID, blocksValues } = params;
+                if (!avID || !blocksValues) {
+                    throw new Error('avID和blocksValues参数是必需的');
+                }
+                const result = await appendAttributeViewDetachedBlocksWithValues(avID, blocksValues);
+                return result;
+            }
+
+            case 'addBoundBlocks': {
+                const { avID, blockIDs, itemIDs } = params;
+                if (!avID || !blockIDs) {
+                    throw new Error('avID和blockIDs参数是必需的');
+                }
+                const srcs = blockIDs.map((id: string, index: number) => ({
+                    id: id,
+                    isDetached: false,
+                    itemID: itemIDs ? itemIDs[index] : id
+                }));
+                const result = await addAttributeViewBlocks(avID, srcs);
+                return result;
+            }
+
+            case 'setAttribute': {
+                const { avID, keyID, itemID, value } = params;
+                if (!avID || !keyID || !itemID || !value) {
+                    throw new Error('avID、keyID、itemID和value参数是必需的');
+                }
+                const result = await setAttributeViewBlockAttr(avID, keyID, itemID, value);
+                return result;
+            }
+
+            case 'batchSetAttributes': {
+                const { avID, values } = params;
+                if (!avID || !values) {
+                    throw new Error('avID和values参数是必需的');
+                }
+                const result = await batchSetAttributeViewBlockAttrs(avID, values);
+                return result;
+            }
+
+            case 'getDatabasesForBlock': {
+                const { blockID } = params;
+                if (!blockID) {
+                    throw new Error('blockID参数是必需的');
+                }
+                const result = await getAttributeViewKeys(blockID);
+                return result;
+            }
+
+            case 'getItemIDsByBlockIDs': {
+                const { avID, blockIDs } = params;
+                if (!avID || !blockIDs) {
+                    throw new Error('avID和blockIDs参数是必需的');
+                }
+                const result = await getAttributeViewItemIDsByBoundIDs(avID, blockIDs);
+                return result;
+            }
+
+
+            case 'getBlockIDsByItemIDs': {
+                const { avID, itemIDs } = params;
+                if (!avID || !itemIDs) {
+                    throw new Error('avID和itemIDs参数是必需的');
+                }
+                const result = await getAttributeViewBoundBlockIDsByItemIDs(avID, itemIDs);
+                return result;
+            }
+
+            case 'addColumn': {
+                const { avID, keyName, keyType, keyIcon, previousKeyID } = params;
+                if (!avID || !keyName || !keyType || !previousKeyID) {
+                    throw new Error('avID、keyName、keyType和previousKeyID参数是必需的');
+                }
+                // addAttributeViewKey 会自动生成 keyID，keyIcon 默认为空字符串
+                const result = await addAttributeViewKey(
+                    avID,
+                    keyName,
+                    keyType,
+                    previousKeyID, // previousKeyID 必选
+                    undefined, // keyID 自动生成
+                    keyIcon || "" // keyIcon 默认为空字符串
+                );
+                return result;
+            }
+
+            case 'removeColumn': {
+                const { avID, keyID } = params;
+                if (!avID || !keyID) {
+                    throw new Error('avID和keyID参数是必需的');
+                }
+                const result = await removeAttributeViewKey(avID, keyID);
+                return result;
+            }
+
+            case 'removeRows': {
+                const { avID, srcIDs } = params;
+                if (!avID || !srcIDs) {
+                    throw new Error('avID和srcIDs参数是必需的');
+                }
+                const result = await removeAttributeViewBlocks(avID, srcIDs);
+                return result;
+            }
+
+            default:
+                throw new Error(`未知的操作类型: ${operation}`);
+        }
+    } catch (error) {
+        console.error('Database operation error:', error);
+        throw new Error(`数据库操作失败: ${(error as Error).message}`);
+    }
+}
+
+/**
  * 执行工具调用
  */
 export async function executeToolCall(toolCall: ToolCall): Promise<string> {
@@ -1245,6 +1842,10 @@ export async function executeToolCall(toolCall: ToolCall): Promise<string> {
             case 'siyuan_move_documents':
                 const moveResult = await siyuan_move_documents(args.fromIDs, args.toID);
                 return JSON.stringify(moveResult, null, 2);
+
+            case 'siyuan_database':
+                const dbResult = await siyuan_database(args);
+                return JSON.stringify(dbResult, null, 2);
 
             default:
                 throw new Error(`未知的工具: ${name}`);

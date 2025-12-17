@@ -508,6 +508,9 @@
         "siyuan_sql_query": {
             "name": "SQL查询"
         },
+        "siyuan_database": {
+            "name": "数据库操作"
+        },
         "siyuan_insert_block": {
             "name": "插入块"
         },
@@ -538,7 +541,7 @@
         "siyuan_move_documents": {
             "name": "移动文档"
         },
-        "siyuan_get_doc_tree":{
+        "siyuan_get_doc_tree": {
             "name": "获取文档树"
         },
         "calling": "正在调用工具",
