@@ -725,20 +725,20 @@ siyuan_move_documents({
 ## 注意事项
 - 如果要设置标签需要先获取已有标签，然后根据用户需求是增加新标签还是直接覆盖标签，如果标签为空则直接覆盖
 `,
-    parameters: {
-        type: 'object',
-        properties: {
-            id: {
-                type: 'string',
-                description: '要设置属性的块ID',
-            },
-            attrs: {
+            parameters: {
                 type: 'object',
-                description: '属性对象，键为属性名，值为字符串',
+                properties: {
+                    id: {
+                        type: 'string',
+                        description: '要设置属性的块ID',
+                    },
+                    attrs: {
+                        type: 'object',
+                        description: '属性对象，键为属性名，值为字符串',
+                    },
+                },
+                required: ['id', 'attrs'],
             },
-        },
-        required: ['id', 'attrs'],
-    },
         },
     },
 ];
