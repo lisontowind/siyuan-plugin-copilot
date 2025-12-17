@@ -36,7 +36,7 @@
     import MultiModelSelector from './components/MultiModelSelector.svelte';
     import SessionManager from './components/SessionManager.svelte';
     import ToolSelector, { type ToolConfig } from './components/ToolSelector.svelte';
-    import ModelSettingsButton from './components/ModelSettingsButton.svelte';
+    import ModelPresetButton from './components/ModelPreset.svelte';
     import type { ProviderConfig } from './defaultSettings';
     import { settingsStore } from './stores/settings';
     import { confirm, Constants } from 'siyuan';
@@ -7898,7 +7898,7 @@
                 </button>
             </div>
             <!-- 模型设置按钮 -->
-            <ModelSettingsButton
+            <ModelPresetButton
                 {providers}
                 {currentProvider}
                 {currentModelId}
