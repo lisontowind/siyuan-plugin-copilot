@@ -2324,8 +2324,10 @@
         }
 
         const isDeepseekThinkingAgent =
-            chatMode === 'agent' && currentProvider === 'deepseek' &&
-            modelConfig.capabilities?.thinking && (modelConfig.thinkingEnabled || false);
+            chatMode === 'agent' &&
+            currentProvider === 'deepseek' &&
+            modelConfig.capabilities?.thinking &&
+            (modelConfig.thinkingEnabled || false);
 
         // 准备发送给AI的消息（包含系统提示词和上下文文档）
         // 深拷贝消息数组，避免修改原始消息
@@ -3064,7 +3066,8 @@
                                         if (enableThinking && streamingThinking) {
                                             assistantMessage.thinking = streamingThinking;
                                             if (isDeepseekThinkingAgent) {
-                                                assistantMessage.reasoning_content = streamingThinking;
+                                                assistantMessage.reasoning_content =
+                                                    streamingThinking;
                                             }
                                         }
 
