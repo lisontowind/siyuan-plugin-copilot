@@ -7710,66 +7710,11 @@
         {/if}
     </div>
 
-    <div
-        class="ai-sidebar__input-container"
-        bind:this={inputContainer}
-        on:dragover={handleDragOver}
-        on:dragleave={handleDragLeave}
-        on:drop={handleDrop}
-    >
-        <!-- 模式选择 -->
-        <div class="ai-sidebar__mode-selector">
-            <label for="chat-mode-select" class="ai-sidebar__mode-label">
-                {t('aiSidebar.mode.label')}:
-            </label>
-            <select
-                id="chat-mode-select"
-                class="b3-select ai-sidebar__mode-select"
-                bind:value={chatMode}
-            >
-                <option value="ask">{t('aiSidebar.mode.ask')}</option>
-                <option value="edit">{t('aiSidebar.mode.edit')}</option>
-                <option value="agent">{t('aiSidebar.mode.agent')}</option>
-            </select>
-
-            <!-- 自动批准复选框（仅在编辑模式下显示） -->
-            {#if chatMode === 'edit'}
-                <label class="ai-sidebar__auto-approve-label">
-                    <input type="checkbox" class="b3-switch" bind:checked={autoApproveEdit} />
-                    <span>{t('aiSidebar.mode.autoApprove')}</span>
-                </label>
-            {/if}
-
-            <!-- Agent模式工具选择按钮 -->
-            {#if chatMode === 'agent'}
-                <button
-                    class="b3-button b3-button--text ai-sidebar__tool-selector-btn"
-                    on:click={() => (isToolSelectorOpen = !isToolSelectorOpen)}
-                    title={t('aiSidebar.agent.selectTools')}
-                >
-                    <svg class="b3-button__icon"><use xlink:href="#iconSettings"></use></svg>
-                    <span>{t('aiSidebar.agent.tools')} ({selectedTools.length})</span>
-                </button>
-            {/if}
-
-            <!-- 多模型对话按钮（仅在问答模式下显示） -->
-            {#if chatMode === 'ask'}
-                <div class="ai-sidebar__multi-model-selector-wrapper">
-                    <MultiModelSelector
-                        {providers}
-                        bind:selectedModels={selectedMultiModels}
-                        bind:enableMultiModel
-                        on:change={handleMultiModelChange}
-                        on:toggleEnable={handleToggleMultiModel}
-                        on:toggleThinking={handleToggleModelThinking}
-                    />
-                </div>
-            {/if}
-        </div>
 
         <!-- 上下文文档和附件列表 -->
         {#if contextDocuments.length > 0 || currentAttachments.length > 0}
             <div class="ai-sidebar__context-docs">
+                <div class="ai-sidebar__context-docs-title">📎 {t('aiSidebar.context.content')}</div>
                 <div class="ai-sidebar__context-docs-list">
                     <!-- 显示上下文文档 -->
                     {#each contextDocuments as doc (doc.id)}
@@ -7831,7 +7776,62 @@
                 </div>
             </div>
         {/if}
+    <div
+        class="ai-sidebar__input-container"
+        bind:this={inputContainer}
+        on:dragover={handleDragOver}
+        on:dragleave={handleDragLeave}
+        on:drop={handleDrop}
+    >
+        <!-- 模式选择 -->
+        <div class="ai-sidebar__mode-selector">
+            <label for="chat-mode-select" class="ai-sidebar__mode-label">
+                {t('aiSidebar.mode.label')}:
+            </label>
+            <select
+                id="chat-mode-select"
+                class="b3-select ai-sidebar__mode-select"
+                bind:value={chatMode}
+            >
+                <option value="ask">{t('aiSidebar.mode.ask')}</option>
+                <option value="edit">{t('aiSidebar.mode.edit')}</option>
+                <option value="agent">{t('aiSidebar.mode.agent')}</option>
+            </select>
 
+            <!-- 自动批准复选框（仅在编辑模式下显示） -->
+            {#if chatMode === 'edit'}
+                <label class="ai-sidebar__auto-approve-label">
+                    <input type="checkbox" class="b3-switch" bind:checked={autoApproveEdit} />
+                    <span>{t('aiSidebar.mode.autoApprove')}</span>
+                </label>
+            {/if}
+
+            <!-- Agent模式工具选择按钮 -->
+            {#if chatMode === 'agent'}
+                <button
+                    class="b3-button b3-button--text ai-sidebar__tool-selector-btn"
+                    on:click={() => (isToolSelectorOpen = !isToolSelectorOpen)}
+                    title={t('aiSidebar.agent.selectTools')}
+                >
+                    <svg class="b3-button__icon"><use xlink:href="#iconSettings"></use></svg>
+                    <span>{t('aiSidebar.agent.tools')} ({selectedTools.length})</span>
+                </button>
+            {/if}
+
+            <!-- 多模型对话按钮（仅在问答模式下显示） -->
+            {#if chatMode === 'ask'}
+                <div class="ai-sidebar__multi-model-selector-wrapper">
+                    <MultiModelSelector
+                        {providers}
+                        bind:selectedModels={selectedMultiModels}
+                        bind:enableMultiModel
+                        on:change={handleMultiModelChange}
+                        on:toggleEnable={handleToggleMultiModel}
+                        on:toggleThinking={handleToggleModelThinking}
+                    />
+                </div>
+            {/if}
+        </div>
         <div class="ai-sidebar__input-row">
             <div class="ai-sidebar__input-wrapper">
                 <textarea
@@ -8760,8 +8760,6 @@
 
     .ai-sidebar__context-docs {
         flex-shrink: 0;
-        max-height: 250px;
-        overflow: auto;
     }
 
     .ai-sidebar__context-docs-title {
@@ -8775,6 +8773,8 @@
         display: flex;
         flex-wrap: wrap;
         gap: 4px;
+        max-height: 250px;
+        overflow: auto;
     }
 
     .ai-sidebar__context-doc-item {
