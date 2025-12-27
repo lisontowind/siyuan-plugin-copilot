@@ -1,4 +1,10 @@
 
+## v0.9.2 / 20251227
+- 🎨 添加删除提示词功能 ([#95](https://github.com/Achuan-2/siyuan-plugin-copilot/issues/95)),感谢[MaplumeX](https://github.com/MaplumeX)贡献
+- 🎨 优化上下文拖动
+
+
+
 ## v0.9.1 / 20251221
 - 🎨 json支持检查，格式化和嵌套 ([#87](https://github.com/Achuan-2/siyuan-plugin-copilot/issues/87))
 - 🐛 修复部分回复无法显示问题 ([#89](https://github.com/Achuan-2/siyuan-plugin-copilot/issues/89))
