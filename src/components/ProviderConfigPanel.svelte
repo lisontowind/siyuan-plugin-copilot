@@ -12,6 +12,10 @@
     export let config: ProviderConfig;
     export let isCustomProvider: boolean = false; // 是否为自定义平台
 
+    // 内置平台列表（不需要自定义参数）
+    const builtInProviders = ['gemini', 'deepseek', 'openai', 'moonshot', 'volcano', 'v3'];
+    $: isBuiltInProvider = builtInProviders.includes(providerId);
+
     const dispatch = createEventDispatcher();
 
     let isLoadingModels = false;
@@ -577,35 +581,38 @@
                                     updateModel(model.id, 'maxTokens', model.maxTokens)}
                             />
                         </div>
-                        <div class="model-config-item">
-                            <div class="custom-body-header">
-                                <span>{t('models.customBody')} </span>
-                                {#if model.customBody && validateJsonString(model.customBody).valid}
-                                    <button 
-                                        class="format-json-btn"
-                                        title="格式化 JSON"
-                                        on:click={() => formatCustomBodyJson(model.id, model.customBody || '')}
-                                    >
-                                        <svg class="b3-button__icon" style="width: 12px; height: 12px; color: var(--b3-theme-on-surface);">
-                                            <use xlink:href="#iconFormat"></use>
-                                        </svg>
-                                    </button>
+                        <!-- 只有自定义平台才显示自定义参数设置 -->
+                        {#if !isBuiltInProvider}
+                            <div class="model-config-item">
+                                <div class="custom-body-header">
+                                    <span>{t('models.customBody')} </span>
+                                    {#if model.customBody && validateJsonString(model.customBody).valid}
+                                        <button 
+                                            class="format-json-btn"
+                                            title="格式化 JSON"
+                                            on:click={() => formatCustomBodyJson(model.id, model.customBody || '')}
+                                        >
+                                            <svg class="b3-button__icon" style="width: 12px; height: 12px; color: var(--b3-theme-on-surface);">
+                                                <use xlink:href="#iconFormat"></use>
+                                            </svg>
+                                        </button>
+                                    {/if}
+                                </div>
+                                <textarea
+                                    class="b3-text-field custom-body-textarea"
+                                    class:json-error={customBodyErrors[model.id]}
+                                    class:json-valid={model.customBody && !customBodyErrors[model.id] && validateJsonString(model.customBody).valid}
+                                    style="height: 80px; resize: vertical; font-family: monospace; font-size: 12px;"
+                                    value={model.customBody || ''}
+                                    placeholder={'支持嵌套 JSON，例如：\n{\n  "key": "value",\n  "nested": { "a": 1 }\n}'}
+                                    on:input={(e) =>
+                                        handleCustomBodyChange(model.id, e.currentTarget.value)}
+                                />
+                                {#if customBodyErrors[model.id]}
+                                    <div class="json-error-hint">{customBodyErrors[model.id]}</div>
                                 {/if}
                             </div>
-                            <textarea
-                                class="b3-text-field custom-body-textarea"
-                                class:json-error={customBodyErrors[model.id]}
-                                class:json-valid={model.customBody && !customBodyErrors[model.id] && validateJsonString(model.customBody).valid}
-                                style="height: 80px; resize: vertical; font-family: monospace; font-size: 12px;"
-                                value={model.customBody || ''}
-                                placeholder={'支持嵌套 JSON，例如：\n{\n  "key": "value",\n  "nested": { "a": 1 }\n}'}
-                                on:input={(e) =>
-                                    handleCustomBodyChange(model.id, e.currentTarget.value)}
-                            />
-                            {#if customBodyErrors[model.id]}
-                                <div class="json-error-hint">{customBodyErrors[model.id]}</div>
-                            {/if}
-                        </div>
+                        {/if}
                         <div class="model-config-item">
                             <span>{t('models.capabilities')}</span>
                             <div class="model-capabilities">
