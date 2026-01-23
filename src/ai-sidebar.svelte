@@ -3597,6 +3597,10 @@
             // 检查window.Lute是否存在
             if (typeof window !== 'undefined' && (window as any).Lute) {
                 const lute = (window as any).Lute.New();
+                // 启用行内数学公式支持，将 $...$ 解析为 <span class="language-math">...</span>
+                lute.SetInlineMath(true);
+                // 允许 $ 后面紧跟数字，如 $7.24 s$
+                lute.SetInlineMathAllowDigitAfterOpenMarker(true);
                 // 使用Md2HTML将markdown转换为HTML，而不是Md2BlockDOM
                 // Md2HTML不会生成带data-node-id的块级结构，可以正常跨块选择文本
                 const html = lute.Md2HTML(textContent);
