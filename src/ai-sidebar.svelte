@@ -4221,25 +4221,23 @@
                     ? (endContainer as Element)
                     : (endContainer?.parentElement as Element | null);
             
-            // 检查是否在代码块内（排除公式元素）
-            let ancestorContainsCode = false;
-            if (startElem && !startElem.closest('.language-math, [data-subtype="math"], .katex')) {
-                ancestorContainsCode = !!startElem.closest('pre, code');
-            }
-            if (endElem && !endElem.closest('.language-math, [data-subtype="math"], .katex')) {
-                ancestorContainsCode = ancestorContainsCode || !!endElem.closest('pre, code');
-            }
+            // 检查是否包含公式元素
+            const containsMath = !!div.querySelector('.language-math, [data-subtype="math"], .katex');
             
-            // 同时检查 cloneContents 中是否包含高亮器 span（排除公式）
-            const hasHighlightedSpan = !!div.querySelector('[class*="hljs-"], pre > code, code[class*="language-"]:not(.language-math)');
-            const containsCodeBlock = ancestorContainsCode || hasHighlightedSpan;
+            // 检查是否在纯代码块内（开始和结束都在代码块内，且不包含公式）
+            let isPureCodeBlock = false;
+            if (!containsMath) {
+                const startInCode = startElem && !!startElem.closest('pre, code');
+                const endInCode = endElem && !!endElem.closest('pre, code');
+                isPureCodeBlock = startInCode && endInCode;
+            }
 
-            // 如果选区为代码块或包含高亮 / 具有典型代码特征（如下划线+括号/分号/=），认为是代码片段
-            if (containsCodeBlock) {
+            // 如果是纯代码块选择（不包含公式），使用纯文本复制
+            if (isPureCodeBlock) {
                 const text = selection.toString();
                 event.clipboardData?.setData('text/plain', text);
             } else {
-                // 使用占位符方式处理公式，避免被 Lute 转义
+                // 包含公式或混合内容，使用占位符方式处理
                 const { html, placeholders } = extractMathFormulasToPlaceholders(div);
                 
                 // 使用思源的 Lute 将 HTML 转换为 Markdown
