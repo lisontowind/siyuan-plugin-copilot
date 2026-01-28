@@ -6510,8 +6510,8 @@
         }
 
         // 处理多模型重新生成的逻辑
-        // 情况1：之前使用了多模型，且用户当前启用了多模型，重新使用之前的多模型
-        // 情况2：之前不是多模型，但用户当前启用了多模型，使用当前选择的多模型
+        // 情况1：之前使用了多模型，且用户当前启用了多模型，优先使用当前用户设置的模型列表
+        // 情况2：用户当前启用了多模型，使用当前选择的多模型
         // 情况3：用户关闭了多模型，使用单模型
         if (chatMode === 'ask') {
             // 检查是否应该使用多模型
@@ -6520,34 +6520,30 @@
 
             // 只有当用户当前启用了多模型时，才考虑使用多模型
             if (enableMultiModel && selectedMultiModels.length > 0) {
-                // 情况1：之前使用了多模型，优先使用之前的模型列表
-                if (useMultiModel && previousMultiModels.length > 0) {
-                    // 过滤掉无效的模型（提供商或模型已被删除）
-                    const validPreviousModels = previousMultiModels.filter(model => {
-                        const config = getProviderAndModelConfig(model.provider, model.modelId);
-                        return config !== null;
-                    });
+                // 优先使用当前用户设置的模型列表
+                const validCurrentModels = selectedMultiModels.filter(model => {
+                    const config = getProviderAndModelConfig(model.provider, model.modelId);
+                    return config !== null;
+                });
 
-                    if (validPreviousModels.length > 0) {
-                        shouldUseMultiModel = true;
-                        modelsToUse = validPreviousModels;
-                        
-                        // 检查是否有无效的模型被过滤掉
-                        if (validPreviousModels.length < previousMultiModels.length) {
-                            const invalidCount = previousMultiModels.length - validPreviousModels.length;
-                            pushMsg(`有 ${invalidCount} 个模型已从配置中删除，将使用剩余的 ${validPreviousModels.length} 个模型`);
-                        }
-                    } else {
-                        // 所有之前的模型都无效，使用当前选择的模型
-                        pushMsg('之前选择的多模型已全部失效，将使用当前选择的模型重新生成');
-                        shouldUseMultiModel = true;
-                        modelsToUse = selectedMultiModels;
-                    }
-                }
-                // 情况2：之前不是多模型，使用当前选择的多模型
-                else {
+                if (validCurrentModels.length > 0) {
+                    // 使用当前有效的模型
                     shouldUseMultiModel = true;
-                    modelsToUse = selectedMultiModels;
+                    modelsToUse = validCurrentModels;
+                } else {
+                    // 当前设置的模型都无效，检查是否之前有使用多模型
+                    if (useMultiModel && previousMultiModels.length > 0) {
+                        const validPreviousModels = previousMultiModels.filter(model => {
+                            const config = getProviderAndModelConfig(model.provider, model.modelId);
+                            return config !== null;
+                        });
+
+                        if (validPreviousModels.length > 0) {
+                            pushMsg('当前选择的多模型无效，将使用之前的模型重新生成');
+                            shouldUseMultiModel = true;
+                            modelsToUse = validPreviousModels;
+                        }
+                    }
                 }
             }
             // 情况3：用户关闭了多模型，不使用多模型（继续执行后续单模型逻辑）
@@ -6864,7 +6860,9 @@
                     apiKey: providerConfig.apiKey,
                     model: modelConfig.id,
                     messages: messagesToSend,
-                    temperature: modelConfig.temperature,
+                    temperature: tempModelSettings.temperatureEnabled
+                        ? tempModelSettings.temperature
+                        : modelConfig.temperature,
                     maxTokens: modelConfig.maxTokens > 0 ? modelConfig.maxTokens : undefined,
                     stream: true,
                     signal: abortController.signal,
